@@ -16,8 +16,11 @@ setup(
     name="datapi",
     version="0.1.0",
     packages=find_packages(),
+    package_data={
+        "datapi.core": ["templates/*.jinja2"],
+    },
     include_package_data=True,
-    install_requires=parse_requirements('requirements.txt'),
+    install_requires=parse_requirements("requirements.txt"),
     dependency_links=[
         "git+https://github.com/velascoluis/malloy-py.git@main#egg=malloy"
     ],

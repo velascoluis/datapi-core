@@ -21,9 +21,9 @@ class Initializer:
 
 # Metastore URI
 metastore_type: polaris
-metastore_uri: 'your-metastore-uri'
-metastore_credentials: 'your-metastore-credentials'
-metastore_catalog: 'your-metastore-catalog'
+metastore_uri: 'https://polaris-cr-1063524325524.us-central1.run.app/api/catalog'
+metastore_credentials: 'fd6325ab90c17f44:07215b6ce0c6bf24c66416176b20fb27'
+metastore_catalog: 'test_iceberg_catalog'
 
 # Deployment settings
 deployment:
@@ -40,7 +40,7 @@ deployment:
         sample_resource_content = """resource_name: sample-resource
 type: rest
 depends_on:
-    - table: sample_dataset.sample_table
+    - table: datapi_namespace.aggregate_sales
     - location: bigquery
 local_engine: duckdb
 short_description: This a sample query

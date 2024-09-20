@@ -13,15 +13,20 @@ class ResourceConfig:
         self.local_engine = data.get("local_engine")
         self.short_description = data.get("short_description")
         self.long_description = data.get("long_description")
+        self.deploy = data.get("deploy")
         # Update depends_on handling
         depends_on = data.get("depends_on", [])
-        self.depends_on_table = next(
-            (item["table"] for item in depends_on if "table" in item), None
-        )
-        self.depends_on_location = next(
-            (item["location"] for item in depends_on if "location" in item), None
-        )
+        self.depends_on_table = None
+        self.depends_on_location = None
 
+        for item in depends_on:
+
+            if isinstance(item, dict):
+                if "table" in item:
+                    self.depends_on_table = item["table"]
+                elif "location" in item:
+                    self.depends_on_location = item["location"]
+      
         self.filters = data.get("filters")
         self.aggregate = data.get("aggregate")
         self.group_by = data.get("group_by")

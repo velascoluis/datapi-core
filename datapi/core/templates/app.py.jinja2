@@ -1,0 +1,47 @@
+import sys
+import asyncio
+
+# Prevent uvloop from being imported
+sys.modules['uvloop'] = None
+
+# Ensure we're using the default event loop policy
+asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+
+# Prevent IPython from being imported
+sys.modules['IPython'] = None
+
+from fastapi import FastAPI
+from pyiceberg.catalog.rest import RestCatalog
+from datapi.core.utils import run_malloy_query
+import os
+
+app = FastAPI()
+
+def _get_pyiceberg_catalog(polaris_uri,credentials,catalog_name):
+    return RestCatalog(
+        name="polaris",
+        uri=polaris_uri,
+        warehouse=catalog_name,
+        credential=credentials,
+        scope="PRINCIPAL_ROLE:ALL",
+    )
+    
+
+@app.get("/get_data")
+async def get_data():
+    catalog = _get_pyiceberg_catalog(
+        polaris_uri="{{ polaris_uri }}",
+        credentials="{{ credentials }}",
+        catalog_name="{{ catalog_name }}"
+)
+    source = """{{ source }}"""
+    query = """{{ query }}"""
+    table = catalog.load_table("{{ table_name }}")
+    con = table.scan().to_duckdb(table_name="{{ table_name }}")
+    result = await run_malloy_query(con, source, query)
+    return result
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)

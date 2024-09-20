@@ -41,7 +41,6 @@ If you don't specify a project name, it will default to 'datapi_project'.
 
 Example:
 
-```
 ## Commands
 
 - **Initialize Project**
@@ -50,25 +49,49 @@ Example:
   datapi init [PROJECT_NAME]
   ```
 
-- **Deploy Resources**
+- **Deploy all Resources**
 
   ```bash
-  datapi run --all --project [PROJECT_NAME]
+  datapi run --all
   ```
+
+- **Deploy a Single Resource**
+
+  ```bash
+  datapi run --resource [RESOURCE_NAME]
+  ```
+
 
 - **List Resources**
 
   ```bash
-  datapi show --all --project [PROJECT_NAME]
+  datapi show --all
+  ```
+
+- **List one Resources**
+
+  ```bash
+  datapi show --resource [RESOURCE_NAME]
   ```
 
 - **Generate Documentation**
 
   ```bash
-  datapi docs generate --project [PROJECT_NAME]
+  datapi docs generate --all
   ```
+
+- **Generate Documentation for one Resource**
+
+  ```bash
+  datapi docs generate --resource [RESOURCE_NAME]
+  ```
+
+- **Serve Documentation**
+
+  ```bash
+  datapi docs serve
+  ```  
 
 ## Notes
 
 - Run `datapi` commands from the directory containing your datapi project.
-- If you don't specify a project name with the `--project` option, datapi will attempt to find a project in the current directory.

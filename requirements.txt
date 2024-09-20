@@ -7,3 +7,4 @@ duckdb
 nest_asyncio
 aiofiles
 google-cloud-run
+Jinja2

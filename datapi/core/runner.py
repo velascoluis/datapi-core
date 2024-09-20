@@ -7,10 +7,22 @@ import yaml
 import shutil
 from datapi.core.resource import ResourceConfig
 from datapi.core.utils import run_malloy_query
+from jinja2 import Environment, FileSystemLoader, ChoiceLoader, PackageLoader
+
+import dataclasses
 import importlib.util
 import sys
 import subprocess
+import traceback
 from google.cloud import run_v2
+
+APP_TEMPLATE_NAME = "app.py.jinja2"
+DOCKERFILE_TEMPLATE_NAME = "Dockerfile.jinja2"
+REQUIREMENTS_TEMPLATE_NAME = "requirements.txt.jinja2"
+
+APP_NAME = "app.py"
+DOCKERFILE_NAME = "Dockerfile"
+REQUIREMENTS_NAME = "requirements.txt"
 
 
 class Runner:
@@ -20,6 +32,10 @@ class Runner:
         self.config = self._load_config()
         self.resources_path = os.path.join(self.project_path, "resources")
         self.deployments_path = os.path.join(self.project_path, "deployments")
+
+        package_loader = PackageLoader('datapi.core', 'templates')
+        file_loader = FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates'))
+        self.jinja_env = Environment(loader=ChoiceLoader([package_loader, file_loader]))
 
         # Create deployments folder if it doesn't exist
         os.makedirs(self.deployments_path, exist_ok=True)
@@ -75,9 +91,13 @@ class Runner:
                     f"{idx} of {total} OK endpoint for {resource_name} [OK in {duration:.2f}s]"
                 )
             except Exception as e:
-                click.echo(
-                    f"{idx} of {total} FAILED endpoint for {resource_name} [ERROR: {e}]"
-                )
+                error_message = f"{idx} of {total} FAILED endpoint for {resource_name}"
+                error_details = f"Error type: {type(e).__name__}"
+
+                error_traceback = traceback.format_exc()
+                click.echo(f"{error_message}\n{error_details}\n"
+                           f"Error message: {str(e)}\n\n"
+                           f"Traceback:\n{error_traceback}")
                 continue
 
     def run_single(self, resource_name):
@@ -101,6 +121,8 @@ class Runner:
         query = config.get_malloy_query()
         connection = config.local_engine
         resource_name = config.resource_name
+        table = config.depends_on_table
+       
 
         if not query or not connection:
             raise ValueError(
@@ -113,7 +135,7 @@ class Runner:
 
         # Generate FastAPI app
         self._generate_fastapi_app(
-            source, query, connection, resource_name, resource_deploy_path
+            source, query, table, connection, resource_name, resource_deploy_path
         )
 
         # Generate Dockerfile
@@ -142,118 +164,35 @@ class Runner:
             await self._deploy_container(image_name, resource_name)
 
     def _generate_fastapi_app(
-        self, source, query, connection, resource_name, deploy_path
+        self, source, query, table, connection, resource_name, deploy_path
     ):
-        polaris_uri = self.config.get("metastore_uri", {})
-        credentials = self.config.get("metastore_credentials", {})
-        catalog_name = self.config.get("metastore_catalog", {})
+        template = self.jinja_env.get_template(APP_TEMPLATE_NAME)
+        app_content = template.render(
+            polaris_uri=self.config.get("metastore_uri", {}),
+            credentials=self.config.get("metastore_credentials", {}),
+            catalog_name=self.config.get("metastore_catalog", {}),
+            table_name=table,
+            source=source,
+            query=query,
+        )
 
-        app_code = f'''
-import sys
-import asyncio
-
-# Prevent uvloop from being imported
-sys.modules['uvloop'] = None
-
-# Ensure we're using the default event loop policy
-asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
-
-# Prevent IPython from being imported
-sys.modules['IPython'] = None
-
-from fastapi import FastAPI
-from pyiceberg.catalog.rest import RestCatalog
-from datapi.core.utils import run_malloy_query
-import os
-
-app = FastAPI()
-
-def _get_pyiceberg_catalog(polaris_uri,credentials,catalog_name):
-    return RestCatalog(
-        name="polaris",
-        uri=polaris_uri,
-        warehouse=catalog_name,
-        credential=credentials,
-        scope="PRINCIPAL_ROLE:ALL",
-    )
-    
-
-@app.get("/get_data")
-async def get_data():
-    catalog = _get_pyiceberg_catalog(
-        polaris_uri=r"""{polaris_uri}""",
-        credentials=r"""{credentials}""",
-        catalog_name=r"""{catalog_name}"""
-)
-    source = r"""{source}"""
-    query = r"""{query}"""
-    table = catalog.load_table(f"{NAMESPACE}.{TABLE_NAME}")
-    con = table.scan().to_duckdb(table_name=TABLE_NAME
-    result = await run_malloy_query(con, source, query)
-    return result
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 8080))
-    uvicorn.run(app, host="0.0.0.0", port=port)
-'''
-        # Write the app code to a file in the deployment folder
-        app_file_path = os.path.join(deploy_path, "app.py")
+        app_file_path = os.path.join(deploy_path, APP_NAME)
         with open(app_file_path, "w") as app_file:
-            app_file.write(app_code)
+            app_file.write(app_content)
 
     def _generate_dockerfile(self, deploy_path):
-        dockerfile_content = """
-FROM python:3.9-slim
+        template = self.jinja_env.get_template(DOCKERFILE_TEMPLATE_NAME)
+        dockerfile_content = template.render()
 
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    git \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements and install Python dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Clone and set up malloy-py
-RUN git clone https://github.com/velascoluis/malloy-py.git && \
-    cd malloy-py && \
-    git submodule update --init && \
-    pip install -r requirements.dev.txt && \
-    npm install && \
-    scripts/gen-services.sh && \
-    cd .. && \
-    rm -rf malloy-py/.git
-
-# Install Node.js (required for Malloy)
-RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash - \
-    && apt-get install -y nodejs
-# Copy the rest of the application
-COPY . /app
-
-# Ensure datapi package is in the Python path
-ENV PYTHONPATH=/app:$PYTHONPATH
-
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
-"""
-        dockerfile_path = os.path.join(deploy_path, "Dockerfile")
+        dockerfile_path = os.path.join(deploy_path, DOCKERFILE_NAME)
         with open(dockerfile_path, "w") as dockerfile:
             dockerfile.write(dockerfile_content)
 
     def _generate_requirements(self, deploy_path):
-        requirements_content = """
-fastapi
-uvicorn[standard]
-duckdb
-google-cloud-bigquery
-pandas
-pyiceberg
-"""
-        requirements_path = os.path.join(deploy_path, "requirements.txt")
+        template = self.jinja_env.get_template(REQUIREMENTS_TEMPLATE_NAME)
+        requirements_content = template.render()
+
+        requirements_path = os.path.join(deploy_path,REQUIREMENTS_NAME)
         with open(requirements_path, "w") as req_file:
             req_file.write(requirements_content)
 
@@ -351,9 +290,9 @@ pyiceberg
                 name=f"projects/{project_id}/locations/{region}/services/{service_name}"
             )
             service = client.get_service(request=request)
-            status = "Deployed"
+            status = f" {service} deployed"
         except Exception:
-            status = "Not deployed"
+            status = f" {service} not deployed"
 
         return status
 
