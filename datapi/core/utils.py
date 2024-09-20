@@ -54,17 +54,17 @@ def check_cloud_run_services(resource_name, deployment_config):
     status = "Not deployed"
     client = run_v2.ServicesClient()
     project_id = deployment_config.get("project_id")
-    region = deployment_config.get("region", "us-central1")
+    region = deployment_config.get("region")
     service_name = f"{resource_name}-service"
 
     try:
         request = run_v2.GetServiceRequest(
             name=f"projects/{project_id}/locations/{region}/services/{service_name}"
         )
-        service = client.get_service(request=request)
-        status = f" {service} deployed"
+        _ = client.get_service(request=request)
+        status = f" {service_name} deployed"
     except Exception:
-        status = f" {service} not deployed"
+        status = f" {service_name} not deployed"
 
     return status
 

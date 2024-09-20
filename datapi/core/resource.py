@@ -1,10 +1,11 @@
 import yaml
 import re
 import os
+from typing import List, Dict, Optional
 
 
 class ResourceConfig:
-    def __init__(self, yaml_file, project_path):
+    def __init__(self, yaml_file: str, project_path: str):
         with open(yaml_file, "r") as file:
             data = yaml.safe_load(file)
 
@@ -16,12 +17,12 @@ class ResourceConfig:
         self.long_description = data.get("long_description")
         self.deploy = data.get("deploy")
         
-        depends_on = data.get("depends_on", [])
-        self.depends_on_table = None
-        self.depends_on_location = None
+        self.depends_on: List[Dict[str, str]] = data.get("depends_on", [])
+        self.depends_on_namespace: Optional[str] = None
+        self.depends_on_table: Optional[str] = None
+        self.depends_on_location: Optional[str] = None
 
-        for item in depends_on:
-
+        for item in self.depends_on:
             if isinstance(item, dict):
                 if "namespace" in item:
                     self.depends_on_namespace = item["namespace"]
@@ -52,33 +53,49 @@ class ResourceConfig:
     def get_malloy_query(self):
         return self._malloy_query
 
-    def _generate_malloy_query(self):
-        source = f"""source: {self.depends_on_table} is {self.local_engine}.table('{self.depends_on_table}')"""
+    def _generate_malloy_query(self) -> tuple[str, str]:
+        if not self.depends_on_table:
+            raise ValueError("depends_on_table is required for generating Malloy query")
 
-        query_parts = []
+        source = self._generate_malloy_source()
+        query = self._generate_malloy_run_query()
+
+        return source, query
+
+    def _generate_malloy_source(self) -> str:
+        return f"""source: {self.depends_on_table} is {self.local_engine}.table('{self.depends_on_table}')"""
+
+    def _generate_malloy_run_query(self) -> str:
+        query_parts: List[str] = []
         if self.aggregate:
-            match = re.match(r"([\w\.]+)\((.*?)\)", self.aggregate)
-            if match:
-                agg_function = match.group(1).split(".")[-1].lower()
-                agg_field = match.group(2)
-
-                if agg_field:  # Check if a field is provided
-                    alias = f"{agg_field.replace('.', '_')}_{agg_function}"
-                elif '.' in match.group(1):  # Check for qualified calls like math.sum 
-                    alias = f"{match.group(1).replace('.', '_')}"
-                else:  # count(*) cases
-                    alias = f"{agg_function}"
-
-                query_parts.append(f"  aggregate: {alias} is {self.aggregate}")
+            query_parts.append(self._generate_aggregate_part())
 
         if self.group_by:
             query_parts.append(f"  group_by: {self.group_by}")
         if self.filters:
             query_parts.append(f"  where: {self.filters}")
 
-        query = f"""
+        if not query_parts:
+            return ""
+
+        return f"""
 run: {self.depends_on_table} -> {{
 {" ".join(query_parts)}
-}}""" if query_parts else ""
+}}"""
 
-        return source, query
+    def _generate_aggregate_part(self) -> str:
+        match = re.match(r"([\w\.]+)\((.*?)\)", self.aggregate)
+        if not match:
+            raise ValueError(f"Invalid aggregate format: {self.aggregate}")
+
+        agg_function = match.group(1).split(".")[-1].lower()
+        agg_field = match.group(2)
+
+        if agg_field:
+            alias = f"{agg_field.replace('.', '_')}_{agg_function}"
+        elif '.' in match.group(1):
+            alias = f"{match.group(1).replace('.', '_')}"
+        else:
+            alias = f"{agg_function}"
+
+        return f"  aggregate: {alias} is {self.aggregate}"
