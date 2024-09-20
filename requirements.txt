@@ -1,0 +1,9 @@
+click
+fastapi
+uvicorn
+pyyaml
+git+https://github.com/velascoluis/malloy-py.git@main#egg=malloy
+duckdb
+nest_asyncio
+aiofiles
+google-cloud-run
