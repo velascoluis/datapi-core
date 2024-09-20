@@ -144,6 +144,10 @@ class Runner:
     def _generate_fastapi_app(
         self, source, query, connection, resource_name, deploy_path
     ):
+        polaris_uri = self.config.get("metastore_uri", {})
+        credentials = self.config.get("metastore_credentials", {})
+        catalog_name = self.config.get("metastore_catalog", {})
+
         app_code = f'''
 import sys
 import asyncio
@@ -158,17 +162,34 @@ asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
 sys.modules['IPython'] = None
 
 from fastapi import FastAPI
+from pyiceberg.catalog.rest import RestCatalog
 from datapi.core.utils import run_malloy_query
 import os
 
 app = FastAPI()
 
+def _get_pyiceberg_catalog(polaris_uri,credentials,catalog_name):
+    return RestCatalog(
+        name="polaris",
+        uri=polaris_uri,
+        warehouse=catalog_name,
+        credential=credentials,
+        scope="PRINCIPAL_ROLE:ALL",
+    )
+    
+
 @app.get("/get_data")
 async def get_data():
+    catalog = _get_pyiceberg_catalog(
+        polaris_uri=r"""{polaris_uri}""",
+        credentials=r"""{credentials}""",
+        catalog_name=r"""{catalog_name}"""
+)
     source = r"""{source}"""
     query = r"""{query}"""
-    connection = {connection!r}
-    result = await run_malloy_query(connection, source, query)
+    table = catalog.load_table(f"{NAMESPACE}.{TABLE_NAME}")
+    con = table.scan().to_duckdb(table_name=TABLE_NAME
+    result = await run_malloy_query(con, source, query)
     return result
 
 if __name__ == "__main__":
@@ -208,6 +229,9 @@ RUN git clone https://github.com/velascoluis/malloy-py.git && \
     cd .. && \
     rm -rf malloy-py/.git
 
+# Install Node.js (required for Malloy)
+RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash - \
+    && apt-get install -y nodejs
 # Copy the rest of the application
 COPY . /app
 
@@ -227,6 +251,7 @@ uvicorn[standard]
 duckdb
 google-cloud-bigquery
 pandas
+pyiceberg
 """
         requirements_path = os.path.join(deploy_path, "requirements.txt")
         with open(requirements_path, "w") as req_file:
