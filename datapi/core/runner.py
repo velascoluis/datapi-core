@@ -188,8 +188,10 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \\
-    build-essential \\
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
@@ -222,7 +224,6 @@ CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
         requirements_content = """
 fastapi
 uvicorn[standard]
-malloy
 duckdb
 google-cloud-bigquery
 pandas

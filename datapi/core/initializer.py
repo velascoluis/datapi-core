@@ -27,7 +27,7 @@ metastore_catalog: 'your-metastore-catalog'
 
 # Deployment settings
 deployment:
-  registry_url: 'gcr.io/velascoluis-dev-sandbox' 
+  registry_url: 'gcr.io/velascoluis-dev-sandbox'
   region: 'us-central1'
   
 """
