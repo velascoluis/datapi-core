@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Clone and set up malloy-py
 RUN git clone https://github.com/velascoluis/malloy-py.git && \
     cd malloy-py && \
-    pip install . && \
+    pip install -e . && \
     git submodule update --init && \
     pip install -r requirements.dev.txt && \
     scripts/gen-services.sh && \
