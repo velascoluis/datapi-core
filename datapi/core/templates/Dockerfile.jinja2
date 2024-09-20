@@ -23,7 +23,8 @@ RUN git clone https://github.com/velascoluis/malloy-py.git && \
     scripts/gen-services.sh && \
     cd .. && \
     rm -rf malloy-py/.git
-
+    
+RUN python -c "import malloy; print(malloy.__file__)"
 # Install Node.js (required for Malloy)
 RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash - \
     && apt-get install -y nodejs
