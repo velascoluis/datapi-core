@@ -2,6 +2,7 @@ import yaml
 import re
 import os
 
+
 class ResourceConfig:
     def __init__(self, yaml_file, project_path):
         with open(yaml_file, "r") as file:
@@ -14,7 +15,7 @@ class ResourceConfig:
         self.short_description = data.get("short_description")
         self.long_description = data.get("long_description")
         self.deploy = data.get("deploy")
-        # Update depends_on handling
+        
         depends_on = data.get("depends_on", [])
         self.depends_on_table = None
         self.depends_on_location = None
@@ -22,11 +23,13 @@ class ResourceConfig:
         for item in depends_on:
 
             if isinstance(item, dict):
-                if "table" in item:
+                if "namespace" in item:
+                    self.depends_on_namespace = item["namespace"]
+                elif "table" in item:
                     self.depends_on_table = item["table"]
                 elif "location" in item:
                     self.depends_on_location = item["location"]
-      
+
         self.filters = data.get("filters")
         self.aggregate = data.get("aggregate")
         self.group_by = data.get("group_by")

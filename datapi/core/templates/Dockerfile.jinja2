@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     git \
     nodejs \
+    curl \
     npm \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -23,7 +24,7 @@ RUN git clone https://github.com/velascoluis/malloy-py.git && \
     scripts/gen-services.sh && \
     cd .. && \
     rm -rf malloy-py/.git
-    
+
 RUN python -c "import malloy; print(malloy.__file__)"
 # Install Node.js (required for Malloy)
 RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash - \
@@ -35,4 +36,4 @@ COPY . /app
 # Ensure datapi package is in the Python path
 ENV PYTHONPATH=/app:$PYTHONPATH
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]

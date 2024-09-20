@@ -1,0 +1,13 @@
+resource_name: sample-resource-2
+type: rest
+depends_on:
+    - namespace: datapi_namespace
+    - table: aggregate_sales
+    - location: gcs
+local_engine: duckdb
+short_description: This a sample query
+long_description: This a sample query
+aggregate: sales.sum()
+group_by: q
+filters: region = 'EMEA'
+deploy: True 

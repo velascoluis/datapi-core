@@ -2,15 +2,23 @@ import os
 import yaml
 import glob
 import markdown
-import jinja2
+from jinja2 import Environment, FileSystemLoader, ChoiceLoader, PackageLoader
 import http.server
 import socketserver
+
+RESOURCE_DOC_TEMPLATE_NAME = "resource_doc.html.jinja2"
+INDEX_TEMPLATE_NAME = "index.html.jinja2"
+
 
 class Documentation:
     def __init__(self, project_path=None):
         self.project_path = project_path or os.getcwd()
         self.resources_path = os.path.join(self.project_path, 'resources')
         self.docs_path = os.path.join(self.project_path, 'docs')
+
+        package_loader = PackageLoader('datapi.core', 'templates')
+        file_loader = FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates'))
+        self.jinja_env = Environment(loader=ChoiceLoader([package_loader, file_loader]))
 
     def generate(self, resource_name=None):
         if not os.path.exists(self.docs_path):
@@ -38,24 +46,7 @@ class Documentation:
         short_description = data.get('short_description', '')
         long_description = data.get('long_description', '')
         
-        template = jinja2.Template('''
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>{{ resource_name }}</title>
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
-        </head>
-        <body>
-            <h1>{{ resource_name }}</h1>
-            <h2>Short Description</h2>
-            <p>{{ short_description }}</p>
-            <h2>Long Description</h2>
-            {{ long_description_html | safe }}
-        </body>
-        </html>
-        ''')
+        template = self.jinja_env.get_template(RESOURCE_DOC_TEMPLATE_NAME)
         
         html_content = template.render(
             resource_name=resource_name,
@@ -77,28 +68,7 @@ class Documentation:
                 'short_description': data.get('short_description', '')
             })
         
-        template = jinja2.Template('''
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Resource Documentation</title>
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
-        </head>
-        <body>
-            <h1>Resource Documentation</h1>
-            <ul>
-            {% for resource in resources %}
-                <li>
-                    <a href="{{ resource.name }}.html">{{ resource.name }}</a>
-                    <p>{{ resource.short_description }}</p>
-                </li>
-            {% endfor %}
-            </ul>
-        </body>
-        </html>
-        ''')
+        template = self.jinja_env.get_template(INDEX_TEMPLATE_NAME)
         
         html_content = template.render(resources=resources)
         

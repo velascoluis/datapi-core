@@ -36,7 +36,7 @@ async def get_data():
 )
     source = """{{ source }}"""
     query = """{{ query }}"""
-    table = catalog.load_table("{{ table_name }}")
+    table = catalog.load_table("{{ namespace_name }}.{{ table_name }}")
     con = table.scan().to_duckdb(table_name="{{ table_name }}")
     result = await run_malloy_query(con, source, query)
     return result

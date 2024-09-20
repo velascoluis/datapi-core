@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ resource_name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+</head>
+<body>
+    <h1>{{ resource_name }}</h1>
+    <h2>Short Description</h2>
+    <p>{{ short_description }}</p>
+    <h2>Long Description</h2>
+    {{ long_description_html | safe }}
+</body>
+</html>

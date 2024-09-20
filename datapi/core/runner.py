@@ -6,7 +6,12 @@ import os
 import yaml
 import shutil
 from datapi.core.resource import ResourceConfig
-from datapi.core.utils import run_malloy_query
+from datapi.core.utils import (
+    copy_datapi_package,
+    check_container_images,
+    check_cloud_run_services,
+)
+
 from jinja2 import Environment, FileSystemLoader, ChoiceLoader, PackageLoader
 
 import dataclasses
@@ -121,8 +126,8 @@ class Runner:
         query = config.get_malloy_query()
         connection = config.local_engine
         resource_name = config.resource_name
+        namespace = config.depends_on_namespace
         table = config.depends_on_table
-       
 
         if not query or not connection:
             raise ValueError(
@@ -135,7 +140,7 @@ class Runner:
 
         # Generate FastAPI app
         self._generate_fastapi_app(
-            source, query, table, connection, resource_name, resource_deploy_path
+            source, query, namespace, table, connection, resource_name, resource_deploy_path
         )
 
         # Generate Dockerfile
@@ -164,13 +169,14 @@ class Runner:
             await self._deploy_container(image_name, resource_name)
 
     def _generate_fastapi_app(
-        self, source, query, table, connection, resource_name, deploy_path
+        self, source, query, namespace, table, connection, resource_name, deploy_path
     ):
         template = self.jinja_env.get_template(APP_TEMPLATE_NAME)
         app_content = template.render(
             polaris_uri=self.config.get("metastore_uri", {}),
             credentials=self.config.get("metastore_credentials", {}),
             catalog_name=self.config.get("metastore_catalog", {}),
+            namespace_name=namespace,
             table_name=table,
             source=source,
             query=query,
@@ -259,59 +265,12 @@ class Runner:
         return [os.path.basename(f) for f in resource_files]
 
     def _check_container_images(self, resource_name):
-        status = "Not found"
         deployment_config = self.config.get("deployment", {})
-        registry_url = deployment_config.get("registry_url", "gcr.io/your-project-id")
-        image_name = f"{registry_url}/{resource_name}:latest"
-
-        try:
-            result = subprocess.run(
-                ["gcloud", "container", "images", "describe", image_name],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            status = "Available"
-        except subprocess.CalledProcessError:
-            status = "Not found"
-
-        return status
+        return check_container_images(resource_name, deployment_config)
 
     def _check_cloud_run_services(self, resource_name):
-        status = "Not deployed"
-        client = run_v2.ServicesClient()
         deployment_config = self.config.get("deployment", {})
-        project_id = deployment_config.get("project_id")
-        region = deployment_config.get("region", "us-central1")
-        service_name = f"{resource_name}-service"
-
-        try:
-            request = run_v2.GetServiceRequest(
-                name=f"projects/{project_id}/locations/{region}/services/{service_name}"
-            )
-            service = client.get_service(request=request)
-            status = f" {service} deployed"
-        except Exception:
-            status = f" {service} not deployed"
-
-        return status
-
-    def _find_datapi_package(self):
-        """Find the location of the datapi package."""
-        spec = importlib.util.find_spec("datapi")
-        if spec is None:
-            raise ImportError("datapi package not found in the Python path")
-        return os.path.dirname(spec.origin)
+        return check_cloud_run_services(resource_name, deployment_config)
 
     def _copy_datapi_package(self, deploy_path):
-        try:
-            datapi_source = self._find_datapi_package()
-            datapi_dest = os.path.join(deploy_path, "datapi")
-            shutil.copytree(datapi_source, datapi_dest, dirs_exist_ok=True)
-            click.echo(f"Copied datapi package from {datapi_source} to {datapi_dest}")
-        except ImportError as e:
-            click.echo(
-                f"Warning: {str(e)}. Make sure datapi is installed or in your Python path."
-            )
-        except Exception as e:
-            click.echo(f"Error copying datapi package: {str(e)}")
+        copy_datapi_package(deploy_path)
