@@ -22,7 +22,6 @@ def copy_datapi_package(deploy_path):
         datapi_source = find_datapi_package()
         datapi_dest = os.path.join(deploy_path, "datapi")
         shutil.copytree(datapi_source, datapi_dest, dirs_exist_ok=True)
-        click.echo(f"Copied datapi package from {datapi_source} to {datapi_dest}")
     except ImportError as e:
         click.echo(
             f"Warning: {str(e)}. Make sure datapi is installed or in your Python path."

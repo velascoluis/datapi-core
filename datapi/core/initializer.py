@@ -6,8 +6,8 @@ from jinja2 import Environment, FileSystemLoader, ChoiceLoader, PackageLoader
 
 CONFIG_TEMPLATE_NAME = "config.yml.jinja2"
 CONFIG_NAME = "config.yml"
-SAMPLE_RESOURCE_TEMPLATE_NAME = "sample_resource.yml.jinja2"
-SAMPLE_RESOURCE_NAME = "sample_resource.yml"
+SAMPLE_RESOURCE_TEMPLATE_NAME = "sample-resource.yml.jinja2"
+SAMPLE_RESOURCE_NAME = "sample-resource.yml"
 
 
 class Initializer:

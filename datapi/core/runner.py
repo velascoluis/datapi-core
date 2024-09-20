@@ -204,6 +204,7 @@ class Runner:
 
     async def _build_and_push_container(self, image_name, deploy_path):
         # Use Google Cloud Build to build and push the container
+        click.echo(f"Building data pod: {image_name}")
         build_command = f"gcloud builds submit --tag {image_name} ."
 
         # Build and push the container image using Google Cloud Build
@@ -223,8 +224,8 @@ class Runner:
     async def _deploy_container(self, image_name, resource_name):
         deployment_config = self.config.get("deployment", {})
         service_name = deployment_config.get("service_name", f"{resource_name}-service")
-        region = deployment_config.get("region", "us-central1")
-
+        region = deployment_config.get("region")
+        click.echo(f"Deploying data pod: {service_name}")
         # Deploy to Cloud Run (example using gcloud command)
         deploy_command = f"""
         gcloud run deploy {service_name} \\
