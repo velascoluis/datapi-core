@@ -77,6 +77,10 @@ class Documentation:
             print(f"Serving documentation on http://localhost:{port}")
             httpd.serve_forever()
 
-    @staticmethod
-    def _load_yaml(file_path: Path) -> Dict:
-        return yaml.safe_load(file_path.read_text())
+    def _load_yaml(self, file_path: Path) -> dict:
+        try:
+            with open(file_path, 'r') as file:
+                return yaml.safe_load(file) or {}
+        except Exception as e:
+            print(f"Error loading YAML file {file_path}: {e}")
+            return {}
