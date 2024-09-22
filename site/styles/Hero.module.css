@@ -1,0 +1,171 @@
+.hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 80px 20px;
+    background-color: #f5f5f5;
+}
+
+.content {
+    max-width: 600px;
+}
+
+.content h1 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+.content p {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+}
+
+.buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.primaryButton,
+.secondaryButton {
+    padding: 12px 24px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.primaryButton {
+    background-color: #0070f3;
+    color: #ffffff;
+}
+
+.primaryButton:hover {
+    background-color: #005bb5;
+}
+
+.secondaryButton {
+    background-color: #ffffff;
+    color: #0070f3;
+    border: 2px solid #0070f3;
+}
+
+.secondaryButton:hover {
+    background-color: #f0f0f0;
+}
+
+.image {
+    max-width: 550px;
+}
+
+/* Fixed-size Terminal Container */
+.terminal {
+    background-color: #222;
+    color: #fff;
+    font-family: monospace;
+    padding: 10px;
+    border: 1px solid #555;
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Shadow effect */
+    overflow-y: auto; /* Enable vertical scrolling */
+    overflow-x: auto; /* Enable horizontal scrolling if needed */
+    height: 300px; /* Fixed height */
+    width: 500px;  /* Fixed width */
+    position: relative; /* To position window controls */
+}
+
+/* Terminal Content Styling */
+.terminalContent {
+    white-space: pre-wrap;       /* Preserve whitespace and wrap lines */
+    word-wrap: break-word;       /* Prevent long words from overflowing */
+    height: 100%;                /* Ensure content takes full height */
+    padding-top: 25px;           /* Space for window controls */
+}
+
+/* Caret (Cursor) Styling */
+.caret {
+    animation: blink-animation 1s steps(5, start) infinite;
+}
+
+@keyframes blink-animation {
+    to {
+        visibility: hidden;
+    }
+}
+
+/* Command and Output Styling */
+.command {
+    color: green;
+}
+
+.output {
+    color: lightblue;
+}
+
+/* Mac Window Controls */
+.windowControls {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    gap: 8px;
+}
+
+.circle {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.red {
+    background-color: #ff5f56;
+}
+
+.yellow {
+    background-color: #ffbd2e;
+}
+
+.green {
+    background-color: #27c93f;
+}
+
+/* Scrollbar Customization */
+.terminal::-webkit-scrollbar {
+    width: 8px;
+}
+
+.terminal::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+.terminal::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+.highlighted {
+    background-color: #b7d8ee;
+    /* Light blue background */
+    padding: 0.2rem 0.4rem;
+    /* Add some padding */
+    border-radius: 0.3rem;
+    /* Rounded corners */
+    color: #0070f3;
+    /* Darker blue text color */
+    font-weight: 600;
+    /* Slightly bolder text */
+}
+
+.cursor {
+    display: inline-block;
+    width: 3px;
+    height: 50px;
+    background-color: #007bff;
+    margin-left: 5px;
+    animation: blink 0.7s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+}

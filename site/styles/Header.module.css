@@ -1,0 +1,37 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.logoLink {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  gap: 20px;
+}
+
+.navLink {
+  font-size: 1rem;
+  color: #333;
+  text-decoration: none;
+}
+
+.navLink:hover {
+  color: #0070f3;
+}
+
+.headerLine {
+  width: 100%;
+  border-bottom: 1px solid #e0e0e0;
+  margin-top: 10px;
+}

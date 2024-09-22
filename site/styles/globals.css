@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset some default styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Apply global font and background */
+body {
+  font-family: 'Sans', sans-serif;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+/* Link styles */
+a {
+  color: #0070f3;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Add more custom styles as needed */
+
+/* Example: Styling for a specific class */
+.hero-section {
+    background-color: #f7fafc;
+    padding: 4rem 0;
+}
+
+/* Add smooth scrolling behavior */
+html {
+  scroll-behavior: smooth;
+}

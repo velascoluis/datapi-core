@@ -1,0 +1,49 @@
+.features {
+    padding: 60px 20px;
+    background-color: #ffffff;
+    text-align: center;
+}
+
+.features h2 {
+    font-size: 2.5rem;
+    margin-bottom: 40px;
+}
+
+.featureList {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+
+.feature {
+    max-width: 450px;
+}
+
+.feature h3 {
+    font-size: 1.5rem;
+    margin: 20px 0 10px;
+}
+
+.feature p {
+    font-size: 1rem;
+    color: #555;
+}
+
+.imageWrapper {
+    flex: 0 0 50%; /* Adjust this value as needed */
+    margin-right: 1rem;
+    width: 100%;
+    max-width: 800px; /* Match this to the width you want */
+    margin: 0 auto;
+}
+
+.feature img {
+    width: 100%;
+    height: auto;
+}
+
+.roundedImage {
+    border-radius: 10px;
+    overflow: hidden;
+}

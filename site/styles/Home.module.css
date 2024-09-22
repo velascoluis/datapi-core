@@ -1,0 +1,38 @@
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 60px 20px;
+  background-color: #ffffff;
+}
+
+.content {
+  max-width: 600px;
+}
+
+.content h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+.content p {
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+}
+
+.cta {
+  padding: 10px 20px;
+  background-color: #0070f3;
+  color: #ffffff;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.cta:hover {
+  background-color: #005bb5;
+}
+
+.image {
+  max-width: 500px;
+}
+

@@ -1,0 +1,41 @@
+.footer {
+  padding: 40px 20px;
+  background-color: #f1f1f1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.quickLinks,
+.socials,
+.legal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.quickLinks h4,
+.socials h4,
+.legal h4 {
+  margin-bottom: 10px;
+}
+
+.quickLinks a,
+.socials a,
+.legal a {
+  margin: 5px 0;
+  color: #333;
+  text-decoration: none;
+}
+
+.quickLinks a:hover,
+.socials a:hover,
+.legal a:hover {
+  color: #0070f3;
+}
+
+.copy {
+  text-align: center;
+  color: #777;
+}
