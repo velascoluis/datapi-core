@@ -1,6 +1,10 @@
-module.exports = {
-    reactStrictMode: true,
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+    output: 'export',
+    distDir: "build",
     images: {
-        domains: ['getdatapi.com'], // Update with your image domains
+        unoptimized: true,
     },
 };
+
+module.exports = nextConfig
