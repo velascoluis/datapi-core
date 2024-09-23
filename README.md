@@ -76,7 +76,7 @@ type: REST
 depends_on:
     - namespace: METASTORE_NAMESPACE_NAME
       table: METASTORE_ICEBERG_TABLE_NAME
-local_engine: DUCKDB
+local_engine: duckdb
 short_description: This a sample query
 long_description: This a sample query
 aggregate: sales.sum()

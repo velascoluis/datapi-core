@@ -8,7 +8,7 @@ class ResourceConfig:
     REQUIRED_FIELDS = {
         "resource_name": {"required": True},
         "type": {"required": True, "expected_value": "REST"},
-        "local_engine": {"required": True, "expected_value": "DUCKDB"},
+        "local_engine": {"required": True, "expected_value": "duckdb"},
         "deploy": {"required": True, "type": bool},
     }
 
