@@ -1,10 +1,9 @@
 resource_name: sample-resource
-type: rest
+type: REST
 depends_on:
     - namespace: datapi_namespace
     - table: aggregate_sales
-    - location: gcs
-local_engine: duckdb
+local_engine: DUCKDB
 short_description: This a sample query
 long_description: This a sample query
 aggregate: sales.sum()

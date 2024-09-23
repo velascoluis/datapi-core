@@ -3,7 +3,6 @@ import time
 import click
 import glob
 import os
-import yaml
 import shutil
 from datapi.core.resource import ResourceConfig
 from datapi.core.utils import (
@@ -11,6 +10,7 @@ from datapi.core.utils import (
     check_container_images,
     check_cloud_run_services,
 )
+from datapi.core.config import Config  # Import the new Config class
 
 from jinja2 import Environment, FileSystemLoader, ChoiceLoader, PackageLoader
 
@@ -34,7 +34,8 @@ class Runner:
     def __init__(self, project_name=None):
         self.project_path = os.getcwd()
         self.project_name = project_name or self._find_project_name()
-        self.config = self._load_config()
+        self.config = Config(self.project_path)  # Initialize Config
+        self.config_data = self.config.config_data  # Access config data
         self.resources_path = os.path.join(self.project_path, "resources")
         self.deployments_path = os.path.join(self.project_path, "deployments")
 
@@ -61,13 +62,6 @@ class Runner:
         raise FileNotFoundError(
             "No datapi project found in the current directory or its subdirectories."
         )
-
-    def _load_config(self):
-        config_path = os.path.join(self.project_path, "config.yml")
-        if not os.path.exists(config_path):
-            raise FileNotFoundError(f"config.yml not found in the project directory.")
-        with open(config_path, "r") as config_file:
-            return yaml.safe_load(config_file)
 
     def run(self, all=False, resource=None):
         if all and resource:
@@ -119,7 +113,7 @@ class Runner:
             click.echo(f"FAILED endpoint for {resource_name} [ERROR: {e}]")
 
     async def _run_resource(self, resource_file):
-        config = ResourceConfig(resource_file, self.project_path)
+        config = ResourceConfig(resource_file)  
 
         # Extract necessary information from the resource config
         source = config.get_malloy_source()
@@ -153,7 +147,7 @@ class Runner:
         self._copy_datapi_package(resource_deploy_path)
 
         # Build and push container image
-        deployment_config = self.config.get("deployment", {})
+        deployment_config = self.config.get_deployment_config()
         registry_url = deployment_config.get("registry_url", "gcr.io/your-project-id")
         image_name = f"{registry_url}/{resource_name}:latest"
 
@@ -173,9 +167,9 @@ class Runner:
     ):
         template = self.jinja_env.get_template(APP_TEMPLATE_NAME)
         app_content = template.render(
-            polaris_uri=self.config.get("metastore_uri", {}),
-            credentials=self.config.get("metastore_credentials", {}),
-            catalog_name=self.config.get("metastore_catalog", {}),
+            polaris_uri=self.config.get("metastore_uri", ""),
+            credentials=self.config.get("metastore_credentials", ""),
+            catalog_name=self.config.get("metastore_catalog", ""),
             namespace_name=namespace,
             table_name=table,
             source=source,
@@ -198,7 +192,7 @@ class Runner:
         template = self.jinja_env.get_template(REQUIREMENTS_TEMPLATE_NAME)
         requirements_content = template.render()
 
-        requirements_path = os.path.join(deploy_path,REQUIREMENTS_NAME)
+        requirements_path = os.path.join(deploy_path, REQUIREMENTS_NAME)
         with open(requirements_path, "w") as req_file:
             req_file.write(requirements_content)
 
@@ -222,7 +216,7 @@ class Runner:
         click.echo(stdout.decode())
 
     async def _deploy_container(self, image_name, resource_name):
-        deployment_config = self.config.get("deployment", {})
+        deployment_config = self.config.get_deployment_config()
         service_name = deployment_config.get("service_name", f"{resource_name}-service")
         region = deployment_config.get("region")
         click.echo(f"Deploying data pod: {service_name}")
@@ -266,11 +260,11 @@ class Runner:
         return [os.path.basename(f) for f in resource_files]
 
     def _check_container_images(self, resource_name):
-        deployment_config = self.config.get("deployment", {})
+        deployment_config = self.config.get_deployment_config()
         return check_container_images(resource_name, deployment_config)
 
     def _check_cloud_run_services(self, resource_name):
-        deployment_config = self.config.get("deployment", {})
+        deployment_config = self.config.get_deployment_config()
         return check_cloud_run_services(resource_name, deployment_config)
 
     def _copy_datapi_package(self, deploy_path):

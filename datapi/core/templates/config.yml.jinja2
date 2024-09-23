@@ -1,13 +1,15 @@
 # datapi configuration file
 
 # datapi - Metastore URI
-metastore_type: polaris
+metastore_type: POLARIS
 metastore_uri: 'https://polaris-cr-1063524325524.us-central1.run.app/api/catalog'
 metastore_credentials: 'fd6325ab90c17f44:07215b6ce0c6bf24c66416176b20fb27'
 metastore_catalog: 'test_iceberg_catalog'
 
 # datapi datapods - Deployment settings
 deployment:
+  deployment_target: GCP_CLOUD_RUN
+  build_service: GCP_CLOUD_BUILD
   project_id: 'velascoluis-dev-sandbox'
   registry_url: 'gcr.io/velascoluis-dev-sandbox'
   region: 'us-central1'

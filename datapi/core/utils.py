@@ -14,13 +14,24 @@ def find_datapi_package():
     spec = importlib.util.find_spec("datapi")
     if spec is None:
         raise ImportError("datapi package not found in the Python path")
-    return os.path.dirname(spec.origin)
+    
+    if spec.origin:
+        print(f"datapi origin: {spec.origin}")  # Debugging statement
+        return os.path.dirname(spec.origin)
+    elif spec.submodule_search_locations:
+        path = next(iter(spec.submodule_search_locations))
+        print(f"datapi submodule search location: {path}")  # Debugging statement
+        return path
+    else:
+        raise ImportError("Cannot determine the location of the datapi package.")
 
 
 def copy_datapi_package(deploy_path):
     try:
         datapi_source = find_datapi_package()
+        print(f"datapi_source: {datapi_source}")  # Debugging statement
         datapi_dest = os.path.join(deploy_path, "datapi")
+        print(f"datapi_dest: {datapi_dest}")  # Debugging statement
         shutil.copytree(datapi_source, datapi_dest, dirs_exist_ok=True)
     except ImportError as e:
         click.echo(

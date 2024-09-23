@@ -1,31 +1,12 @@
 # dataPi
 
-`datapi` is a Python package that allows you to deploy data resources, list them, and generate documentation, similar to how `dbt` operates.
+`datapi` is a Python package that allows you to deploy data resources, list them, and generate documentation.
 
 ## Installation
 ```bash
-pip install -e .
+pip install datapi
 ```
 
-## Usage
-
-- **Deploy Resources**
-
-  ```bash
-  datapi run --all
-  ```
-
-- **List Resources**
-
-  ```bash
-  datapi show --all
-  ```
-
-- **Generate Documentation**
-
-  ```bash
-  datapi docs generate
-  ```
 
 ## Getting Started
 

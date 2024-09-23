@@ -1,17 +1,29 @@
 import yaml
 import re
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
+
 
 
 class ResourceConfig:
-    def __init__(self, yaml_file: str, project_path: str):
+    REQUIRED_FIELDS = {
+        "resource_name": {"required": True},
+        "type": {"required": True, "expected_value": "REST"},
+        "local_engine": {"required": True, "expected_value": "DUCKDB"},
+        "deploy": {"required": True, "type": bool},
+    }
+
+    OPTIONAL_FIELDS = {
+        "depends_on": {"type": list},
+        # Add other optional fields here if necessary
+    }
+
+    def __init__(self, yaml_file: str):
         with open(yaml_file, "r") as file:
             data = yaml.safe_load(file)
 
         self.resource_name = data.get("resource_name")
         self.type = data.get("type")
-        self.metastore_uri = data.get("metastore_uri")
         self.local_engine = data.get("local_engine")
         self.short_description = data.get("short_description")
         self.long_description = data.get("long_description")
@@ -35,13 +47,7 @@ class ResourceConfig:
         self.aggregate = data.get("aggregate")
         self.group_by = data.get("group_by")
 
-        # Load metastore_uri from config.yml if not specified
-        if not self.metastore_uri:
-            project_config_path = os.path.join(project_path, 'config.yml')
-            with open(project_config_path, 'r') as config_file:
-                project_config = yaml.safe_load(config_file)
-            self.metastore_uri = project_config.get('metastore_uri')
-
+        self._validate_config()
         self._malloy_source, self._malloy_query = self._generate_malloy_query()
 
     def __str__(self):
@@ -52,6 +58,39 @@ class ResourceConfig:
 
     def get_malloy_query(self):
         return self._malloy_query
+
+    def _validate_config(self):
+        """
+        Validates the configuration for ResourceConfig.
+        Raises:
+            KeyError: If a required key is missing.
+            ValueError: If a key has an unexpected value or type.
+        """
+        for key, criteria in self.REQUIRED_FIELDS.items():
+            if criteria.get("required") and key not in self.__dict__:
+                raise KeyError(f"Missing required key: '{key}' in the YAML file")
+            
+            value = getattr(self, key, None)
+            if "expected_value" in criteria and value != criteria["expected_value"]:
+                raise ValueError(
+                    f"Invalid value for '{key}': Expected '{criteria['expected_value']}', got '{value}'"
+                )
+            if "type" in criteria and not isinstance(value, criteria["type"]):
+                raise ValueError(
+                    f"Invalid type for '{key}': Expected '{criteria['type'].__name__}', got '{type(value).__name__}'"
+                )
+
+        # Validate optional fields
+        if self.depends_on:
+            if not isinstance(self.depends_on, list):
+                raise ValueError(f"'depends_on' should be a list, got '{type(self.depends_on).__name__}'")
+            for index, item in enumerate(self.depends_on):
+                if not isinstance(item, dict):
+                    raise ValueError(f"Each item in 'depends_on' should be a dict, got '{type(item).__name__}' at index {index}")
+                if "namespace" not in item or "table" not in item:
+                    raise KeyError(
+                        f"Each item in 'depends_on' must contain both 'namespace' and 'table' keys. Missing in item at index {index}"
+                    )
 
     def _generate_malloy_query(self) -> tuple[str, str]:
         if not self.depends_on_table:
