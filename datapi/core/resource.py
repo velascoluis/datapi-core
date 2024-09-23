@@ -38,10 +38,9 @@ class ResourceConfig:
             if isinstance(item, dict):
                 if "namespace" in item:
                     self.depends_on_namespace = item["namespace"]
-                elif "table" in item:
+                if "table" in item:
                     self.depends_on_table = item["table"]
-                elif "location" in item:
-                    self.depends_on_location = item["location"]
+       
 
         self.filters = data.get("filters")
         self.aggregate = data.get("aggregate")

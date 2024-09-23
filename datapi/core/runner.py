@@ -120,8 +120,11 @@ class Runner:
         query = config.get_malloy_query()
         connection = config.local_engine
         resource_name = config.resource_name
-        namespace = config.depends_on_namespace
-        table = config.depends_on_table
+        
+        # Extract namespace and table from the depends_on section
+        depends_on = config.depends_on[0]  # Assuming there's only one dependency
+        namespace = depends_on["namespace"]
+        table = depends_on["table"]
 
         if not query or not connection:
             raise ValueError(
