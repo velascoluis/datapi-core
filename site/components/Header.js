@@ -10,8 +10,8 @@ function Header() {
           <Image
             src="/images/logo.png"
             alt="DataPi Logo"
-            width={70}
-            height={30}
+            width={200}
+            height={40}
             priority
           />
         </Link>
