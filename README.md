@@ -1,6 +1,8 @@
 # dataPi
 
-`datapi` is a Python package that allows you to implement a datalakehouse head , deploy data pods, list them, and generate documentation.
+![dataPod](assets/datapi.png)
+
+`datapi` (from data + API) is a Python package that allows you to implement a datalakehouse head , deploy data pods, list them, and generate documentation.
 
 ## Installation from source
 
