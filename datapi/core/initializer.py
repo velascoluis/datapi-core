@@ -21,8 +21,9 @@ class Initializer:
 
     def initialize_project(self):
         if os.path.exists(self.project_name):
-            click.echo(f"Error: Project '{self.project_name}' already exists.")
-            return
+            raise click.ClickException(
+                f"Error: Project '{self.project_name}' already exists."
+            )
 
         os.makedirs(os.path.join(self.project_name, "resources"), exist_ok=True)
         os.makedirs(os.path.join(self.project_name, "docs"), exist_ok=True)

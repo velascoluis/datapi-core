@@ -1,29 +1,48 @@
 # datapi/cli.py
 
+import os
 import click
+from functools import wraps
 from datapi.core.runner import Runner
 from datapi.core.documentation import Documentation
 from datapi.core.initializer import Initializer
 
 
+def ensure_datapi_project(func):
+    """Decorator to ensure the command is run inside a datapi project"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        click.echo("Decorator: Checking for config.yml file...")
+        if not os.path.exists('config.yml'):
+            click.echo("Decorator: Error: This command must be run inside a datapi project. Please run 'datapi init' first.")
+            return
+        click.echo("Decorator: config.yml file found.")
+        return func(*args, **kwargs)
+    return wrapper
+
+
 @click.group()
 def cli():
-    pass
+    click.echo("CLI group initialized")
 
 
 @cli.command()
 @click.argument("project_name", required=False, default="datapi_project")
 def init(project_name):
     """Initialize a new datapi project"""
+    click.echo("Initializing project...")
     initializer = Initializer(project_name)
     initializer.initialize_project()
+    click.echo("Project initialized")
 
 
 @cli.command()
 @click.option("--all", "run_all", is_flag=True, help="Run all resources")
 @click.option("--resource", "resource_name", help="Run a specific resource")
+@ensure_datapi_project
 def run(run_all, resource_name):
     """Run resources"""
+    click.echo("Running resources...")
     runner = Runner()
     try:
         runner.run(all=run_all, resource=resource_name)
@@ -34,7 +53,7 @@ def run(run_all, resource_name):
 @cli.group()
 def docs():
     """Documentation related commands"""
-    pass
+    click.echo("Docs group initialized")
 
 
 @docs.command()
@@ -47,16 +66,16 @@ def docs():
 @click.option(
     "--resource", "resource_name", help="Generate documentation for a specific resource"
 )
+@ensure_datapi_project
 def generate(generate_all, resource_name):
     """Generate documentation"""
+    click.echo("Generate command called.")
     documentation = Documentation()
     if generate_all and resource_name:
-        click.echo(
-            "Error: Cannot use both --all and --resource options simultaneously."
-        )
+        click.echo("Error: Cannot use both --all and --resource options simultaneously.")
         return
     if generate_all:
-        documentation.generate()  # This will generate docs for all resources
+        documentation.generate()  # Generate docs for all resources
     elif resource_name:
         documentation.generate(resource_name=resource_name)
     else:
@@ -65,15 +84,19 @@ def generate(generate_all, resource_name):
 
 @docs.command()
 @click.option("--port", default=8000, help="Port to serve documentation")
+@ensure_datapi_project
 def serve(port):
     """Serve documentation"""
+    click.echo("Serving documentation...")
     documentation = Documentation()
     documentation.serve(port=port)
 
 
 @cli.command()
+@ensure_datapi_project
 def show():
     """Show all resources and their status"""
+    click.echo("Showing all resources...")
     runner = Runner()
     status = runner.show_all()
     if not status['resources']:
