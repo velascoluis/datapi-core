@@ -4,7 +4,6 @@ import os
 from typing import List, Dict, Optional, Any
 
 
-
 class ResourceConfig:
     REQUIRED_FIELDS = {
         "resource_name": {"required": True},
@@ -15,7 +14,6 @@ class ResourceConfig:
 
     OPTIONAL_FIELDS = {
         "depends_on": {"type": list},
-        # Add other optional fields here if necessary
     }
 
     def __init__(self, yaml_file: str):
@@ -28,7 +26,7 @@ class ResourceConfig:
         self.short_description = data.get("short_description")
         self.long_description = data.get("long_description")
         self.deploy = data.get("deploy")
-        
+
         self.depends_on: List[Dict[str, str]] = data.get("depends_on", [])
         self.depends_on_namespace: Optional[str] = None
         self.depends_on_table: Optional[str] = None
@@ -40,7 +38,6 @@ class ResourceConfig:
                     self.depends_on_namespace = item["namespace"]
                 if "table" in item:
                     self.depends_on_table = item["table"]
-       
 
         self.filters = data.get("filters")
         self.aggregate = data.get("aggregate")
@@ -59,16 +56,10 @@ class ResourceConfig:
         return self._malloy_query
 
     def _validate_config(self):
-        """
-        Validates the configuration for ResourceConfig.
-        Raises:
-            KeyError: If a required key is missing.
-            ValueError: If a key has an unexpected value or type.
-        """
         for key, criteria in self.REQUIRED_FIELDS.items():
             if criteria.get("required") and key not in self.__dict__:
                 raise KeyError(f"Missing required key: '{key}' in the YAML file")
-            
+
             value = getattr(self, key, None)
             if "expected_value" in criteria and value != criteria["expected_value"]:
                 raise ValueError(
@@ -82,10 +73,14 @@ class ResourceConfig:
         # Validate optional fields
         if self.depends_on:
             if not isinstance(self.depends_on, list):
-                raise ValueError(f"'depends_on' should be a list, got '{type(self.depends_on).__name__}'")
+                raise ValueError(
+                    f"'depends_on' should be a list, got '{type(self.depends_on).__name__}'"
+                )
             for index, item in enumerate(self.depends_on):
                 if not isinstance(item, dict):
-                    raise ValueError(f"Each item in 'depends_on' should be a dict, got '{type(item).__name__}' at index {index}")
+                    raise ValueError(
+                        f"Each item in 'depends_on' should be a dict, got '{type(item).__name__}' at index {index}"
+                    )
                 if "namespace" not in item or "table" not in item:
                     raise KeyError(
                         f"Each item in 'depends_on' must contain both 'namespace' and 'table' keys. Missing in item at index {index}"
@@ -131,7 +126,7 @@ run: {self.depends_on_table} -> {{
 
         if agg_field:
             alias = f"{agg_field.replace('.', '_')}_{agg_function}"
-        elif '.' in match.group(1):
+        elif "." in match.group(1):
             alias = f"{match.group(1).replace('.', '_')}"
         else:
             alias = f"{agg_function}"

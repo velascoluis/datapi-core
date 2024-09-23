@@ -15,6 +15,12 @@ def parse_requirements(filename):
 setup(
     name="datapi",
     version="0.1.0",
+    author="dataPi",
+    author_email="info@getdapi.com",
+    description="dataPi implements a datalakehouse head to get your informational data closer to your applications",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/velascoluis/datapi-core",
     packages=find_packages(),
     package_data={
         "datapi.core": ["templates/*.jinja2"],
@@ -28,4 +34,10 @@ setup(
         [console_scripts]
         datapi=datapi.cli:cli
     """,
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires='>=3.6',
 )

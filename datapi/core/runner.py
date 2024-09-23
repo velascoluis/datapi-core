@@ -20,6 +20,8 @@ import sys
 import subprocess
 import traceback
 from google.cloud import run_v2
+from google.cloud.devtools import cloudbuild_v1
+from google.protobuf import duration_pb2
 
 APP_TEMPLATE_NAME = "app.py.jinja2"
 DOCKERFILE_TEMPLATE_NAME = "Dockerfile.jinja2"
@@ -28,6 +30,7 @@ REQUIREMENTS_TEMPLATE_NAME = "requirements.txt.jinja2"
 APP_NAME = "app.py"
 DOCKERFILE_NAME = "Dockerfile"
 REQUIREMENTS_NAME = "requirements.txt"
+CONFIG_FILE = "config.yml"
 
 
 class Runner:
@@ -39,22 +42,23 @@ class Runner:
         self.resources_path = os.path.join(self.project_path, "resources")
         self.deployments_path = os.path.join(self.project_path, "deployments")
 
-        package_loader = PackageLoader('datapi.core', 'templates')
-        file_loader = FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates'))
+        package_loader = PackageLoader("datapi.core", "templates")
+        file_loader = FileSystemLoader(
+            os.path.join(os.path.dirname(__file__), "templates")
+        )
         self.jinja_env = Environment(loader=ChoiceLoader([package_loader, file_loader]))
 
-        # Create deployments folder if it doesn't exist
         os.makedirs(self.deployments_path, exist_ok=True)
 
     def _find_project_name(self):
-        # Check if we're already in a project directory
-        if os.path.exists("config.yml"):
+
+        if os.path.exists(CONFIG_FILE):
             return os.path.basename(self.project_path)
 
         # Look for a subdirectory with config.yml
         for item in os.listdir(self.project_path):
             if os.path.isdir(item) and os.path.exists(
-                os.path.join(self.project_path, item, "config.yml")
+                os.path.join(self.project_path, item, CONFIG_FILE)
             ):
                 self.project_path = os.path.join(self.project_path, item)
                 return item
@@ -94,9 +98,11 @@ class Runner:
                 error_details = f"Error type: {type(e).__name__}"
 
                 error_traceback = traceback.format_exc()
-                click.echo(f"{error_message}\n{error_details}\n"
-                           f"Error message: {str(e)}\n\n"
-                           f"Traceback:\n{error_traceback}")
+                click.echo(
+                    f"{error_message}\n{error_details}\n"
+                    f"Error message: {str(e)}\n\n"
+                    f"Traceback:\n{error_traceback}"
+                )
                 continue
 
     def run_single(self, resource_name):
@@ -113,16 +119,17 @@ class Runner:
             click.echo(f"FAILED endpoint for {resource_name} [ERROR: {e}]")
 
     async def _run_resource(self, resource_file):
-        config = ResourceConfig(resource_file)  
+        config = ResourceConfig(resource_file)
 
         # Extract necessary information from the resource config
         source = config.get_malloy_source()
         query = config.get_malloy_query()
         connection = config.local_engine
         resource_name = config.resource_name
-        
-        # Extract namespace and table from the depends_on section
-        depends_on = config.depends_on[0]  # Assuming there's only one dependency
+
+        depends_on = config.depends_on[
+            0
+        ]  # TODO(velascoluis) Assuming there's only one dependency
         namespace = depends_on["namespace"]
         table = depends_on["table"]
 
@@ -131,25 +138,25 @@ class Runner:
                 f"Invalid resource configuration in {resource_file}. 'query' and 'connection' are required."
             )
 
-        # Create resource-specific deployment folder
         resource_deploy_path = os.path.join(self.deployments_path, resource_name)
         os.makedirs(resource_deploy_path, exist_ok=True)
 
-        # Generate FastAPI app
         self._generate_fastapi_app(
-            source, query, namespace, table, connection, resource_name, resource_deploy_path
+            source,
+            query,
+            namespace,
+            table,
+            connection,
+            resource_name,
+            resource_deploy_path,
         )
 
-        # Generate Dockerfile
         self._generate_dockerfile(resource_deploy_path)
 
-        # Generate requirements.txt
         self._generate_requirements(resource_deploy_path)
 
-        # Copy datapi package to deployment folder
         self._copy_datapi_package(resource_deploy_path)
 
-        # Build and push container image
         deployment_config = self.config.get_deployment_config()
         registry_url = deployment_config.get("registry_url", "gcr.io/your-project-id")
         image_name = f"{registry_url}/{resource_name}:latest"
@@ -161,7 +168,6 @@ class Runner:
             click.echo(f"Error building and pushing container: {str(e)}")
             return
 
-        # Deploy the container if specified in the resource config
         if config.deploy:
             await self._deploy_container(image_name, resource_name)
 

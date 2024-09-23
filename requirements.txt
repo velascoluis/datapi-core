@@ -10,3 +10,4 @@ google-cloud-run
 Jinja2
 pytest
 pytest-mock
+google-cloud-build

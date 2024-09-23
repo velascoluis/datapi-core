@@ -2,11 +2,13 @@
 
 `datapi` is a Python package that allows you to implement a datalakehouse head , deploy data pods, list them, and generate documentation.
 
-## Installation
-```bash
-pip install datapi
-```
+## Installation from source
 
+Clone this repository and
+
+```bash
+pip install .
+```
 
 ## Getting Started
 
@@ -44,6 +46,7 @@ datapi_project
    - deployments/
    - docs/
 ```
+
 The `config.yml` file should have dataPi general configuration. It looks like:
 
 ```
@@ -82,10 +85,7 @@ filters: region = 'EMEA'
 deploy: True 
 ```
 
-
-
 ## Commands
-
 
 - **Deploy all Resources**
 
@@ -98,7 +98,6 @@ deploy: True
   ```bash
   datapi run --resource [RESOURCE_NAME]
   ```
-
 
 - **List Resources**
 
@@ -130,10 +129,11 @@ deploy: True
   datapi docs serve
   ```  
 
-  ## Data acess from application
+## Data acess from application
 
 Once the dataPod is deployed, it will offer a `get_data` endpoint you can query to retrieve the results.
 Alternatively, you can also use the python client SDK included in the package, for example from yout application you can:
+
 ```python
 client = Client(project_id=project_id, region=region, resource_name=resource_name)
 services = client.list_services()
@@ -145,7 +145,14 @@ data = client.get_data()
 print("Data from example_resource:", data)
 ````
 
+## Planned features
 
-## Notes
-
-- Run `datapi` commands from the directory containing your datapi project.
+- Add more operators including JOINS
+- Add support for other metastores like Unity and BQ metastore
+- Add support for more building services like local Docker
+- Add support for more deployment targets like k8s
+- Add support for local transformations using dbt
+- Make dataPods depend also on other dataPods and not in raw tables
+- Add a UI for view the dataPods deployed and exposed contract
+- Add support for other embedded engines like polars and Fusion
+- Add support for automatic generation of resources using embeddeds LLMs
