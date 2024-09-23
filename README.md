@@ -2,7 +2,7 @@
 
 ![dataPod](assets/datapi.png)
 
-`datapi` (from data + API) is a Python package that allows you to implement a datalakehouse head , deploy data pods, list them, and generate documentation.
+`datapi` (from data + API) is a Python package that allows you to implement a datalakehouse head : deploy data pods, list them, and generate documentation.
 
 ## Installation from source
 
@@ -14,7 +14,7 @@ pip install .
 
 ## How it works
 
-- `dataPi` allow developers to specify in a simple YAML file what informational query their application needs
+- `dataPi` allow developers to specify in a simple `YAML` file what informational query their application needs (e.g. sales aggregated by quarter where region is EMEA)
 - When `datapi run` is executed it creates a dataPod, a container based deployable unit that contains a local engine to resolve the query.
 - Each dataPod exposes an API REST, that when called, asks the metastore for the data location, and afer checking if permissions are in place, retrieves the data and executes locally to the container the query without calling the DataPlatform engine.
 - Finally it sends the data back to the application.
@@ -167,3 +167,6 @@ print("Data from example_resource:", data)
 - Add a UI for view the dataPods deployed and exposed contract
 - Add support for other embedded engines like polars and Fusion
 - Add support for automatic generation of resources using embeddeds LLMs
+- Add support for sending data in more formats (e.g. JSON, Arrow)
+- Add support for grpc instead of REST
+
