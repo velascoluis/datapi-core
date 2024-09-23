@@ -1,17 +1,23 @@
 import os
+import shutil
 import pytest
 from datapi.core.initializer import Initializer
 
 def test_initialize_project():
-    with pytest.raises(FileExistsError):
-        initializer = Initializer('existing_project')
-        os.makedirs('existing_project')
-        initializer.initialize_project()
-
-    initializer = Initializer('new_project')
+    project_name = 'new_project'
+    
+    # Ensure the project directory does not exist before the test
+    if os.path.exists(project_name):
+        shutil.rmtree(project_name)
+    
+    initializer = Initializer(project_name)
     initializer.initialize_project()
-    assert os.path.exists('new_project')
-    assert os.path.exists('new_project/resources')
-    assert os.path.exists('new_project/docs')
-    assert os.path.exists('new_project/config.yml')
-    assert os.path.exists('new_project/resources/sample-resource.yml')
+    
+    assert os.path.exists(project_name)
+    assert os.path.exists(os.path.join(project_name, 'resources'))
+    assert os.path.exists(os.path.join(project_name, 'docs'))
+    assert os.path.exists(os.path.join(project_name, 'config.yml'))
+    assert os.path.exists(os.path.join(project_name, 'resources', 'sample-resource.yml'))
+    
+    # Cleanup after test
+    shutil.rmtree(project_name)

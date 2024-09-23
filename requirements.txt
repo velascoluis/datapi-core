@@ -8,3 +8,5 @@ nest_asyncio
 aiofiles
 google-cloud-run
 Jinja2
+pytest
+pytest-mock

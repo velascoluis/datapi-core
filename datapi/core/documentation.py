@@ -80,7 +80,9 @@ class Documentation:
     def _load_yaml(self, file_path: Path) -> dict:
         try:
             with open(file_path, 'r') as file:
-                return yaml.safe_load(file) or {}
+                data = yaml.safe_load(file) or {}
+                print(f"Loaded data from {file_path}: {data}")  # Debug print
+                return data
         except Exception as e:
             print(f"Error loading YAML file {file_path}: {e}")
             return {}
