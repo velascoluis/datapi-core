@@ -10,17 +10,26 @@ Clone this repository and
 pip install .
 ```
 
+## How it works
+
+- `dataPi` allow developers to specify in a simple YAML file what informational query their application needs
+- When `datapi run` is executed it creates a dataPod, a container based deployable unit that contains a local engine to resolve the query.
+- Each dataPod exposes an API REST, that when called, asks the metastore for the data location, and afer checking if permissions are in place, retrieves the data and executes locally to the container the query without calling the DataPlatform engine.
+- Finally it sends the data back to the application.
+
+![dataPod](assets/datapod.png)
+
 ## Getting Started
 
 ### DataLakeHouse platform requirements
 
 `dataPi` builds on top of an existing Data Platform platform, currently there is support for:
 
-- Lakehouse data format : Apache Iceberg
+- Lakehouse data format : [Apache Iceberg](https://iceberg.apache.org/)
 - Cloud Storage: GCS, AWS S3 and Microsoft ADLS
-- Metastore: Apache Polaris
-- dataPod deployment target: Google Cloud Run
-- dataPod build service: Google Cloud Build
+- Metastore: [Apache Polaris](https://polaris.apache.org/)
+- dataPod deployment target: [Google Cloud Run](https://cloud.google.com/run)
+- dataPod build service: [Google Cloud Build](https://cloud.google.com/build)
 
 Query sources supported: Iceberg tables
 
