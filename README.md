@@ -37,6 +37,8 @@ Query sources supported: Iceberg tables
 
 Query operators supported: `aggregate`, `group_by` and `filters`
 
+NOTE: [Here](https://github.com/velascoluis/polaris-cloud-run-cloud-sql) is a guide on how to deploy and use Apache Polaris on Google Cloud.
+
 ### Initialize a New Project
 
 To create a new `datapi` project, run:
