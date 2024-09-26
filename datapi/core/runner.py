@@ -206,7 +206,6 @@ class Runner:
             req_file.write(requirements_content)
 
     async def _build_and_push_container(self, image_name, deploy_path):
-        # Use Google Cloud Build to build and push the container
         click.echo(f"Building data pod: {image_name}")
         build_command = f"gcloud builds submit --tag {image_name} ."
 

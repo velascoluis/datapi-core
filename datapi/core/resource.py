@@ -102,19 +102,18 @@ class ResourceConfig:
         query_parts: List[str] = []
         if self.aggregate:
             query_parts.append(self._generate_aggregate_part())
-
         if self.group_by:
-            query_parts.append(f"  group_by: {self.group_by}")
+            query_parts.append(self._generate_group_by_part())
         if self.filters:
-            query_parts.append(f"  where: {self.filters}")
+            query_parts.append(self._generate_where_part())
 
         if not query_parts:
             return ""
 
         return f"""
-run: {self.depends_on_table} -> {{
-{" ".join(query_parts)}
-}}"""
+            run: {self.depends_on_table} -> {{
+            {" ".join(query_parts)}
+            }}"""
 
     def _generate_aggregate_part(self) -> str:
         match = re.match(r"([\w\.]+)\((.*?)\)", self.aggregate)
@@ -132,3 +131,9 @@ run: {self.depends_on_table} -> {{
             alias = f"{agg_function}"
 
         return f"  aggregate: {alias} is {self.aggregate}"
+
+    def _generate_group_by_part(self) -> str:
+        return f"  group_by: {self.group_by}"
+
+    def _generate_where_part(self) -> str:
+        return f"  where: {self.filters}"
