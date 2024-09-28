@@ -10,10 +10,35 @@ asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
 # Prevent IPython from being imported
 sys.modules['IPython'] = None
 
+import json
+import numpy as np
+import logging
 from fastapi import FastAPI
 from pyiceberg.catalog.rest import RestCatalog
 from datapi.core.utils import run_malloy_query
 import os
+from fastapi.responses import JSONResponse
+import weakref
+import pandas as pd
+
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, pd.DataFrame):
+            return obj.to_dict(orient='records')
+        elif isinstance(obj, pd.Series):
+            return obj.to_dict()
+        elif isinstance(obj, weakref.ReferenceType):
+            return None  # or some other placeholder value
+        else:
+            return super().default(obj)
 
 app = FastAPI()
 
@@ -39,7 +64,16 @@ async def get_data():
     table = catalog.load_table("{{ namespace_name }}.{{ table_name }}")
     con = table.scan().to_duckdb(table_name="{{ table_name }}")
     result = await run_malloy_query(con, source, query)
-    return result
+    try:
+        if isinstance(result, pd.DataFrame):
+            json_result = json.dumps(result.to_dict(orient='records'), cls=CustomJSONEncoder)
+        else:
+            json_result = json.dumps(result, cls=CustomJSONEncoder)
+        return JSONResponse(content=json.loads(json_result))
+    except Exception as e:
+        logging.error(f"Serialization failed: {str(e)}")
+        return JSONResponse(content={"error": f"Serialization failed: {str(e)}"}, status_code=500)
+    
 
 if __name__ == "__main__":
     import uvicorn

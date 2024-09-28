@@ -1,0 +1,13 @@
+resource_name: sample-resource-reduction
+type: REST
+depends_on:
+    - namespace: datapi_namespace
+      table: aggregate_sales
+local_engine: duckdb
+short_description: This a reduction sample query
+long_description: This a sample query
+operation_type: REDUCTION
+aggregate: sales.sum()
+group_by: q
+filters: region = 'EMEA'
+deploy: True

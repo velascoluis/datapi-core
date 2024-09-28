@@ -6,8 +6,11 @@ from jinja2 import Environment, FileSystemLoader, ChoiceLoader, PackageLoader
 
 CONFIG_TEMPLATE_NAME = "config.yml.jinja2"
 CONFIG_NAME = "config.yml"
-SAMPLE_RESOURCE_TEMPLATE_NAME = "sample-resource.yml.jinja2"
-SAMPLE_RESOURCE_NAME = "sample-resource.yml"
+SAMPLE_RESOURCE_PROJECTION_TEMPLATE_NAME = "sample-resource-projection.yml.jinja2"
+SAMPLE_RESOURCE_PROJECTION_NAME = "sample-resource-projection.yml"
+
+SAMPLE_RESOURCE_REDUCTION_TEMPLATE_NAME = "sample-resource-reduction.yml.jinja2"
+SAMPLE_RESOURCE_REDUCTION_NAME = "sample-resource-reduction.yml"
 
 
 class Initializer:
@@ -42,11 +45,22 @@ class Initializer:
             config_file.write(config_content)
 
     def _create_sample_resource_file(self):
-        template = self.jinja_env.get_template(SAMPLE_RESOURCE_TEMPLATE_NAME)
-        sample_resource_content = template.render()
+        # Create sample projection file
+        projection_template = self.jinja_env.get_template(SAMPLE_RESOURCE_PROJECTION_TEMPLATE_NAME)
+        projection_content = projection_template.render()
 
-        sample_resource_path = os.path.join(
-            self.project_name, "resources", SAMPLE_RESOURCE_NAME
+        projection_path = os.path.join(
+            self.project_name, "resources", SAMPLE_RESOURCE_PROJECTION_NAME
         )
-        with open(sample_resource_path, "w") as resource_file:
-            resource_file.write(sample_resource_content)
+        with open(projection_path, "w") as projection_file:
+            projection_file.write(projection_content)
+
+        # Create sample reduction file
+        reduction_template = self.jinja_env.get_template(SAMPLE_RESOURCE_REDUCTION_TEMPLATE_NAME)
+        reduction_content = reduction_template.render()
+
+        reduction_path = os.path.join(
+            self.project_name, "resources", SAMPLE_RESOURCE_REDUCTION_NAME
+        )
+        with open(reduction_path, "w") as reduction_file:
+            reduction_file.write(reduction_content)

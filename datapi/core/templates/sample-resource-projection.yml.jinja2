@@ -1,12 +1,12 @@
-resource_name: sample-resource
+resource_name: sample-resource-projection
 type: REST
 depends_on:
     - namespace: datapi_namespace
       table: aggregate_sales
 local_engine: duckdb
-short_description: This a sample query
+short_description: This a projection sample query
 long_description: This a sample query
-aggregate: sales.sum()
-group_by: q
+operation_type: PROJECTION
+select: sales q region
 filters: region = 'EMEA'
 deploy: True 

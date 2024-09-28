@@ -1,3 +1,6 @@
+# Example call:
+# python python_client.py --project_id velascoluis-dev-sandbox --region us-central1 --resource_name sample-resource-projection
+
 from datapi.sdk.client import Client
 import argparse
 

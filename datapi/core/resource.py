@@ -1,8 +1,6 @@
 import yaml
-import re
-import os
-from typing import List, Dict, Optional, Any
-
+from typing import List, Dict, Optional
+from .query_parser import QueryParser
 
 class ResourceConfig:
     REQUIRED_FIELDS = {
@@ -10,23 +8,30 @@ class ResourceConfig:
         "type": {"required": True, "expected_value": "REST"},
         "local_engine": {"required": True, "expected_value": "duckdb"},
         "deploy": {"required": True, "type": bool},
+        "operation_type": {"required": True, "allowed_values": ["PROJECTION", "REDUCTION"]},
     }
 
     OPTIONAL_FIELDS = {
         "depends_on": {"type": list},
+        "select": {"type": list},
+        "filters": {"type": list},
+        "aggregate": {"type": list},
+        "group_by": {"type": list},
     }
 
     def __init__(self, yaml_file: str):
         with open(yaml_file, "r") as file:
             data = yaml.safe_load(file)
 
-        self.resource_name = data.get("resource_name")
-        self.type = data.get("type")
-        self.local_engine = data.get("local_engine")
-        self.short_description = data.get("short_description")
-        self.long_description = data.get("long_description")
-        self.deploy = data.get("deploy")
+        # Initialize required fields
+        for field, config in self.REQUIRED_FIELDS.items():
+            setattr(self, field, data[field])
 
+        # Initialize optional fields
+        for field, config in self.OPTIONAL_FIELDS.items():
+            setattr(self, field, data.get(field))
+
+        # Special handling for depends_on
         self.depends_on: List[Dict[str, str]] = data.get("depends_on", [])
         self.depends_on_namespace: Optional[str] = None
         self.depends_on_table: Optional[str] = None
@@ -39,11 +44,8 @@ class ResourceConfig:
                 if "table" in item:
                     self.depends_on_table = item["table"]
 
-        self.filters = data.get("filters")
-        self.aggregate = data.get("aggregate")
-        self.group_by = data.get("group_by")
-
         self._validate_config()
+        self._validate_operation_type()
         self._malloy_source, self._malloy_query = self._generate_malloy_query()
 
     def __str__(self):
@@ -70,6 +72,10 @@ class ResourceConfig:
                     f"Invalid type for '{key}': Expected '{criteria['type'].__name__}', got '{type(value).__name__}'"
                 )
 
+        # Validate operation_type
+        if self.operation_type not in self.REQUIRED_FIELDS["operation_type"]["allowed_values"]:
+            raise ValueError(f"Invalid operation_type: {self.operation_type}. Must be either 'PROJECTION' or 'REDUCTION'")
+
         # Validate optional fields
         if self.depends_on:
             if not isinstance(self.depends_on, list):
@@ -86,54 +92,29 @@ class ResourceConfig:
                         f"Each item in 'depends_on' must contain both 'namespace' and 'table' keys. Missing in item at index {index}"
                     )
 
+    def _validate_operation_type(self):
+        if self.operation_type == "PROJECTION":
+            if not self.select:
+                raise ValueError("'select' field is required for PROJECTION operation")
+            if self.aggregate or self.group_by:
+                raise ValueError("'aggregate' and 'group_by' are not allowed for PROJECTION operation")
+        elif self.operation_type == "REDUCTION":
+            if not self.aggregate or not self.group_by:
+                raise ValueError("Both 'aggregate' and 'group_by' are required for REDUCTION operation")
+            if self.select:
+                raise ValueError("'select' field is not allowed for REDUCTION operation")
+
     def _generate_malloy_query(self) -> tuple[str, str]:
         if not self.depends_on_table:
             raise ValueError("depends_on_table is required for generating Malloy query")
 
-        source = self._generate_malloy_source()
-        query = self._generate_malloy_run_query()
-
-        return source, query
-
-    def _generate_malloy_source(self) -> str:
-        return f"""source: {self.depends_on_table} is {self.local_engine}.table('{self.depends_on_table}')"""
-
-    def _generate_malloy_run_query(self) -> str:
-        query_parts: List[str] = []
-        if self.aggregate:
-            query_parts.append(self._generate_aggregate_part())
-        if self.group_by:
-            query_parts.append(self._generate_group_by_part())
-        if self.filters:
-            query_parts.append(self._generate_where_part())
-
-        if not query_parts:
-            return ""
-
-        return f"""
-            run: {self.depends_on_table} -> {{
-            {" ".join(query_parts)}
-            }}"""
-
-    def _generate_aggregate_part(self) -> str:
-        match = re.match(r"([\w\.]+)\((.*?)\)", self.aggregate)
-        if not match:
-            raise ValueError(f"Invalid aggregate format: {self.aggregate}")
-
-        agg_function = match.group(1).split(".")[-1].lower()
-        agg_field = match.group(2)
-
-        if agg_field:
-            alias = f"{agg_field.replace('.', '_')}_{agg_function}"
-        elif "." in match.group(1):
-            alias = f"{match.group(1).replace('.', '_')}"
-        else:
-            alias = f"{agg_function}"
-
-        return f"  aggregate: {alias} is {self.aggregate}"
-
-    def _generate_group_by_part(self) -> str:
-        return f"  group_by: {self.group_by}"
-
-    def _generate_where_part(self) -> str:
-        return f"  where: {self.filters}"
+        query_parser = QueryParser(
+            depends_on_table=self.depends_on_table,
+            local_engine=self.local_engine,
+            operation_type=self.operation_type,
+            select=self.select,
+            aggregate=self.aggregate,
+            group_by=self.group_by,
+            filters=self.filters
+        )
+        return query_parser.generate_malloy_query()
