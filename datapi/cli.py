@@ -45,6 +45,20 @@ def run(run_all, resource_name):
     click.echo("Running resources...")
     runner = Runner()
     try:
+        if resource_name:
+            # Check if the resource file exists
+            resource_file = os.path.join("resources", f"{resource_name}.yml")
+            if not os.path.exists(resource_file):
+                raise click.ClickException(f"Resource file '{resource_name}.yml' not found in the resources directory.")
+            
+            # Check if the resource name in the file matches the file name
+            with open(resource_file, 'r') as f:
+                import yaml
+                resource_data = yaml.safe_load(f)
+                file_resource_name = resource_data.get('resource_name')
+                if resource_name != file_resource_name:
+                    raise click.ClickException(f"Resource name in file ('{file_resource_name}') does not match the file name ('{resource_name}').")
+
         runner.run(all=run_all, resource=resource_name)
     except Exception as e:
         click.echo(f"Error: {str(e)}")
