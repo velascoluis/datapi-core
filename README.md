@@ -2,7 +2,8 @@
 
 ![dataPod](assets/datapi.png)
 
-`datapi` (from data + API) is a Python package that allows you to implement a datalakehouse head : deploy data pods, list them, and generate documentation.
+`datapi` (from data + API) is a Python package that allows you to implement a distributed datalakehouse head made of data pods.
+This package allows you to define, deploy data pods, list them, and generate documentation.
 
 ## Installation from source
 
@@ -14,7 +15,7 @@ pip install .
 
 ## How it works
 
-- `dataPi` allow developers to specify in a simple `YAML` file what informational query their application needs (e.g. sales aggregated by quarter where region is EMEA)
+- `dataPi` allow appliction developers to specify in a simple `YAML` file what informational query their application needs (e.g. sales aggregated by quarter where region is EMEA)
 - When `datapi run` is executed it creates a dataPod, a container based deployable unit that contains a local engine to resolve the query.
 - Each dataPod exposes an API REST, that when called, asks the metastore for the data location, and afer checking if permissions are in place, retrieves the data and executes locally to the container the query without calling the DataPlatform engine.
 - Finally it sends the data back to the application.
@@ -33,9 +34,13 @@ pip install .
 - dataPod deployment target: [Google Cloud Run](https://cloud.google.com/run)
 - dataPod build service: [Google Cloud Build](https://cloud.google.com/build)
 
-Query sources supported: Iceberg tables
+Query sources supported: Iceberg tables.
 
-Query operators supported: `aggregate`, `group_by` and `filters`
+There is support for two types of dataPods: `projection` and `reduction`.
+
+- Projection dataPods support the `select` and `filters` query operators.
+- Reduction dataPods support the `aggregate`  `group_by` and `filters` query operators.
+
 
 NOTE: [Here](https://github.com/velascoluis/polaris-cloud-run-cloud-sql) is a guide on how to deploy and use Apache Polaris on Google Cloud.
 
@@ -91,7 +96,8 @@ depends_on:
       table: METASTORE_ICEBERG_TABLE_NAME
 local_engine: duckdb
 short_description: This a sample query
-long_description: This a sample query
+long_description: long-desc.md
+operation_type: REDUCTION
 aggregate: sales.sum()
 group_by: quarter
 filters: region = 'EMEA'
@@ -162,13 +168,12 @@ print("Data from example_resource:", data)
 
 - Add more operators including JOINS
 - Add support for other metastores like Unity and BQ metastore
-- Add support for more building services like local Docker
-- Add support for more deployment targets like k8s
+- Add support for more container building services like local Docker
+- Add support for more containter deployment infraestructure like k8s
 - Add support for local transformations using dbt
-- Make dataPods depend also on other dataPods and not in raw tables
+- Make dataPods depend also on other dataPods and not only in tables
 - Add a UI for view the dataPods deployed and exposed contract
 - Add support for other embedded engines like polars and Fusion
 - Add support for automatic generation of resources using embeddeds LLMs
 - Add support for sending data in more formats (e.g. JSON, Arrow)
 - Add support for grpc instead of REST
-
