@@ -14,7 +14,11 @@ def parse_requirements(filename):
 
 setup(
     name="datapi",
-    version="0.1.0",
+    use_scm_version={
+        "write_to": "datapi/_version.py",
+        "write_to_template": '__version__ = "{version}"',
+    },
+    setup_requires=["setuptools_scm"],
     author="dataPi",
     author_email="info@getdapi.com",
     description="dataPi implements a datalakehouse head to get your informational data closer to your applications",
@@ -39,5 +43,5 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )

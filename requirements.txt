@@ -11,3 +11,6 @@ Jinja2
 pytest
 pytest-mock
 google-cloud-build
+sphinx
+sphinx_book_theme
+setuptools_scm

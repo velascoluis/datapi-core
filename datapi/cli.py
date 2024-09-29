@@ -7,6 +7,11 @@ from datapi.core.runner import Runner
 from datapi.core.documentation import Documentation
 from datapi.core.initializer import Initializer
 
+# Import version from the generated version file
+try:
+    from datapi._version import __version__
+except ImportError:
+    __version__ = "unknown"
 
 def ensure_datapi_project(func):
     """Decorator to ensure the command is run inside a datapi project"""
@@ -22,6 +27,7 @@ def ensure_datapi_project(func):
 
 
 @click.group()
+@click.version_option(__version__, prog_name="datapi")
 def cli():
     click.echo("CLI group initialized")
 

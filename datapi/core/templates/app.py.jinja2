@@ -1,5 +1,8 @@
 import sys
 import asyncio
+import time
+import socket
+from urllib.parse import urlparse
 
 # Prevent uvloop from being imported
 sys.modules['uvloop'] = None
@@ -20,6 +23,8 @@ import os
 from fastapi.responses import JSONResponse
 import weakref
 import pandas as pd
+import httpx
+import duckdb
 
 from fastapi import FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -52,7 +57,41 @@ def _get_pyiceberg_catalog(polaris_uri,credentials,catalog_name):
         credential=credentials,
         scope="PRINCIPAL_ROLE:ALL",
     )
-    
+
+async def fetch_resource_data(resource_url, max_retries=3):
+    parsed_url = urlparse(resource_url)
+    logging.info(f"Attempting to resolve {parsed_url.hostname}")
+    try:
+        ip_address = socket.gethostbyname(parsed_url.hostname)
+        logging.info(f"Resolved {parsed_url.hostname} to {ip_address}")
+    except socket.gaierror as e:
+        logging.error(f"Failed to resolve {parsed_url.hostname}: {e}")
+        raise
+
+    for attempt in range(max_retries):
+        try:
+            start_time = time.time()
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                logging.info(f"Sending request to {resource_url}/get_data")
+                response = await client.get(f"{resource_url}/get_data")
+                response.raise_for_status()
+                end_time = time.time()
+                logging.info(f"Request completed in {end_time - start_time:.2f} seconds")
+                return response.json()
+        except httpx.TimeoutException:
+            logging.warning(f"Timeout on attempt {attempt + 1} for {resource_url}")
+            if attempt == max_retries - 1:
+                logging.error(f"Max retries reached for {resource_url}")
+                raise
+        except httpx.HTTPStatusError as e:
+            logging.error(f"HTTP error occurred on attempt {attempt + 1}: {e}")
+            if attempt == max_retries - 1:
+                raise
+        except Exception as e:
+            logging.error(f"Unexpected error on attempt {attempt + 1}: {e}")
+            if attempt == max_retries - 1:
+                raise
+        await asyncio.sleep(2 ** attempt)  # Exponential backoff
 
 @app.get("/get_data")
 async def get_data():
@@ -60,11 +99,25 @@ async def get_data():
         polaris_uri="{{ polaris_uri }}",
         credentials="{{ credentials }}",
         catalog_name="{{ catalog_name }}"
-)
+    )
     source = """{{ source }}"""
     query = """{{ query }}"""
+
+    {% if depends_on_type == "table" %}
     table = catalog.load_table("{{ namespace_name }}.{{ table_name }}")
     con = table.scan().to_duckdb(table_name="{{ table_name }}")
+    {% elif depends_on_type == "resource" %}
+    # For resource dependency, first fetch data from the dependent resource
+    resource_data = await fetch_resource_data("{{ depends_on_resource }}")
+    
+    # Create a temporary DuckDB database in memory
+    con = duckdb.connect(":memory:")
+    
+    # Convert the JSON data to a pandas DataFrame and then to a DuckDB table
+    df = pd.DataFrame(resource_data)
+    con.register("resource_data", df)
+    {% endif %}
+
     result = await run_malloy_query(con, source, query)
     try:
         if isinstance(result, pd.DataFrame):

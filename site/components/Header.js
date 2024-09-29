@@ -24,6 +24,10 @@ function Header() {
         <Link href="#integrations" className={styles.navLink}>
           Integrations
         </Link>
+        
+        <Link href="/sphinx-docs/html/index.html" className={styles.navLink}>
+          Documentation
+        </Link>
       </nav>
      
     </header>

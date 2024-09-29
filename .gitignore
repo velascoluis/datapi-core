@@ -6,3 +6,6 @@ build/
 .pytest_cache/
 dist/
 .scratchpad
+datapi/docs/_build
+datapi/_version.py
+.eggs

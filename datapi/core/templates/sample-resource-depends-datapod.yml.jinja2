@@ -1,0 +1,10 @@
+resource_name: sample-resource-depends-datapod
+type: REST
+depends_on:
+    - resource: sample-resource-projection
+local_engine: duckdb
+short_description: This a projection sample query that depends on another datapod
+long_description: sample-resource-depends-datapod-docs.md
+operation_type: PROJECTION
+select: "*"
+deploy: True
