@@ -6,11 +6,9 @@ dataPi is designed to simplify the process of creating and managing data pods fo
 Core Concepts
 -------------
 
-1. **YAML Configuration**: Application developers specify their informational query needs in a simple YAML file.
+1. **dataPods**: Container-based deployable units that contain a local engine to resolve queries, specified as resources in a YAML file.
 
-2. **dataPods**: Container-based deployable units that contain a local engine to resolve queries.
-
-3. **API REST**: Each dataPod exposes a REST API for data access.
+3. **Iceberg DataLakehouse**: Cloud storage based DataLake with Iceberg files.
 
 4. **Metastore Integration**: dataPods interact with a metastore to locate and access data.
 
