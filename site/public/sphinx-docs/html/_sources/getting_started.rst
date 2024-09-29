@@ -99,6 +99,14 @@ Projection Resource:
    filters: region = 'EMEA'
    deploy: True 
 
+Resources can depend on Iceberg tables registered on the catalog, or on another existing (and deployed) data resources:
+
+.. code-block:: yaml
+    
+   depends_on:
+       - resource: RESOURCE_NAME
+         
+
 Basic Commands
 --------------
 

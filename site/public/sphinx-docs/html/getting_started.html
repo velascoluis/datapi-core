@@ -407,6 +407,11 @@ document.write(`
 <span class="nt">deploy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 </pre></div>
 </div>
+<p>Resources can depend on Iceberg tables registered on the catalog, or on another existing (and deployed) data resources:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">depends_on</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">resource</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RESOURCE_NAME</span>
+</pre></div>
+</div>
 </section>
 <section id="basic-commands">
 <h2>Basic Commands<a class="headerlink" href="#basic-commands" title="Link to this heading">#</a></h2>
