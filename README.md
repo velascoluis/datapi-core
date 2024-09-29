@@ -41,7 +41,6 @@ There is support for two types of dataPods: `projection` and `reduction`.
 - Projection dataPods support the `select` and `filters` query operators.
 - Reduction dataPods support the `aggregate`  `group_by` and `filters` query operators.
 
-
 NOTE: [Here](https://github.com/velascoluis/polaris-cloud-run-cloud-sql) is a guide on how to deploy and use Apache Polaris on Google Cloud.
 
 ### Initialize a New Project
@@ -86,9 +85,9 @@ deployment:
 
 Then the developer will fill in their dataPods specs under the `resources` folder.
 
-For example:
+For example, a `reduction` resource could look like:
 
-```
+```yml
 resource_name: RESOURCE_NAME
 type: REST
 depends_on:
@@ -100,6 +99,23 @@ long_description: long-desc.md
 operation_type: REDUCTION
 aggregate: sales.sum()
 group_by: quarter
+filters: region = 'EMEA'
+deploy: True 
+```
+
+And a `projection` resource could look like:
+
+```yml
+resource_name: RESOURCE_NAME
+type: REST
+depends_on:
+    - namespace: METASTORE_NAMESPACE_NAME
+      table: METASTORE_ICEBERG_TABLE_NAME
+local_engine: duckdb
+short_description: This a sample query
+long_description: long-desc.md
+operation_type: PROJECTION
+seelct: sales quarter region
 filters: region = 'EMEA'
 deploy: True 
 ```
