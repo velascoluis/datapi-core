@@ -41,18 +41,33 @@ class Documentation:
         
         resource_name = data.get('resource_name', 'unknown_resource')
         short_description = data.get('short_description', '')
-        long_description = data.get('long_description', '')
+        long_description_file = data.get('long_description', '')
+        
+        # Load and render the long description from the markdown file
+        long_description_html = self._render_long_description(resource_file.parent / long_description_file)
         
         template = self.jinja_env.get_template(RESOURCE_DOC_TEMPLATE_NAME)
         
         html_content = template.render(
             resource_name=resource_name,
             short_description=short_description,
-            long_description_html=markdown.markdown(long_description)
+            long_description_html=long_description_html
         )
         
         doc_file = self.docs_path / f"{resource_name}.html"
         doc_file.write_text(html_content)
+
+    def _render_long_description(self, md_file_path: Path) -> str:
+        try:
+            with open(md_file_path, 'r') as md_file:
+                md_content = md_file.read()
+                return markdown.markdown(md_content)
+        except FileNotFoundError:
+            print(f"Warning: Long description file not found: {md_file_path}")
+            return ""
+        except Exception as e:
+            print(f"Error rendering long description from {md_file_path}: {e}")
+            return ""
 
     def _generate_index(self) -> None:
         resources = [

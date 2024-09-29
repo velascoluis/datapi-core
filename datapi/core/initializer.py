@@ -6,11 +6,16 @@ from jinja2 import Environment, FileSystemLoader, ChoiceLoader, PackageLoader
 
 CONFIG_TEMPLATE_NAME = "config.yml.jinja2"
 CONFIG_NAME = "config.yml"
+
 SAMPLE_RESOURCE_PROJECTION_TEMPLATE_NAME = "sample-resource-projection.yml.jinja2"
 SAMPLE_RESOURCE_PROJECTION_NAME = "sample-resource-projection.yml"
+SAMPLE_RESOURCE_PROJECTION_DOCS_NAME = "sample-resource-projection-docs.md"
 
 SAMPLE_RESOURCE_REDUCTION_TEMPLATE_NAME = "sample-resource-reduction.yml.jinja2"
 SAMPLE_RESOURCE_REDUCTION_NAME = "sample-resource-reduction.yml"
+SAMPLE_RESOURCE_REDUCTION_DOCS_NAME = "sample-resource-reduction-docs.md"
+
+DOCS_CSS_FILE = "styles.css"
 
 
 class Initializer:
@@ -33,6 +38,7 @@ class Initializer:
 
         self._create_config_file()
         self._create_sample_resource_file()
+        self._create_css_file()  
 
         click.echo(f"Initialized new datapi project in '{self.project_name}'.")
 
@@ -45,7 +51,7 @@ class Initializer:
             config_file.write(config_content)
 
     def _create_sample_resource_file(self):
-        # Create sample projection file
+        # Create sample projection file and docs
         projection_template = self.jinja_env.get_template(SAMPLE_RESOURCE_PROJECTION_TEMPLATE_NAME)
         projection_content = projection_template.render()
 
@@ -55,7 +61,16 @@ class Initializer:
         with open(projection_path, "w") as projection_file:
             projection_file.write(projection_content)
 
-        # Create sample reduction file
+        projection_docs_template = self.jinja_env.get_template(SAMPLE_RESOURCE_PROJECTION_DOCS_NAME)
+        projection_docs_content = projection_docs_template.render()
+
+        projection_docs_path = os.path.join(
+            self.project_name, "resources", SAMPLE_RESOURCE_PROJECTION_DOCS_NAME
+        )
+        with open(projection_docs_path, "w") as projection_docs_file:
+            projection_docs_file.write(projection_docs_content)
+
+        # Create sample reduction file and docs
         reduction_template = self.jinja_env.get_template(SAMPLE_RESOURCE_REDUCTION_TEMPLATE_NAME)
         reduction_content = reduction_template.render()
 
@@ -64,3 +79,20 @@ class Initializer:
         )
         with open(reduction_path, "w") as reduction_file:
             reduction_file.write(reduction_content)
+
+        reduction_docs_template = self.jinja_env.get_template(SAMPLE_RESOURCE_REDUCTION_DOCS_NAME)
+        reduction_docs_content = reduction_docs_template.render()
+
+        reduction_docs_path = os.path.join(
+            self.project_name, "resources", SAMPLE_RESOURCE_REDUCTION_DOCS_NAME
+        )
+        with open(reduction_docs_path, "w") as reduction_docs_file:
+            reduction_docs_file.write(reduction_docs_content)
+
+    def _create_css_file(self):
+        css_template = self.jinja_env.get_template(DOCS_CSS_FILE)
+        css_content = css_template.render()
+
+        css_path = os.path.join(self.project_name, "docs", DOCS_CSS_FILE)
+        with open(css_path, "w") as css_file:
+            css_file.write(css_content)
