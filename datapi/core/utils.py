@@ -61,7 +61,6 @@ def check_container_images(resource_name, deployment_config):
 
 
 def check_cloud_run_services(resource_name, deployment_config):
-    status = "Not deployed"
     client = run_v2.ServicesClient()
     project_id = deployment_config.get("project_id")
     region = deployment_config.get("region")
@@ -71,12 +70,18 @@ def check_cloud_run_services(resource_name, deployment_config):
         request = run_v2.GetServiceRequest(
             name=f"projects/{project_id}/locations/{region}/services/{service_name}"
         )
-        _ = client.get_service(request=request)
-        status = f" {service_name} deployed"
-    except Exception:
-        status = f" {service_name} not deployed"
-
-    return status
+        response = client.get_service(request=request)
+        
+        # Extract the status from the terminal_condition
+        status = response.terminal_condition.type_
+        
+        # Extract the URL from the uri field
+        url = response.uri if status == "Ready" else None
+        
+        return {"status": status, "url": url}
+    except Exception as e:
+        print(f"Error checking Cloud Run service: {str(e)}")
+        return {"status": "NOT_FOUND", "url": None}
 
 
 async def run_malloy_query(connection, source, query):

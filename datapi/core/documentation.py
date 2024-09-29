@@ -5,8 +5,9 @@ import markdown
 from jinja2 import Environment, FileSystemLoader, ChoiceLoader, PackageLoader
 import http.server
 import socketserver
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union  # Add Union to the import
 from pathlib import Path
+from datapi.core.runner import Runner  # Add this import at the top of the file
 
 RESOURCE_DOC_TEMPLATE_NAME = "resource_doc.html.jinja2"
 INDEX_TEMPLATE_NAME = "index.html.jinja2"
@@ -17,6 +18,7 @@ class Documentation:
         self.project_path = Path(project_path or os.getcwd())
         self.resources_path = self.project_path / 'resources'
         self.docs_path = self.project_path / 'docs'
+        self.runner = Runner(project_path)  # Add this line
 
         package_loader = PackageLoader('datapi.core', 'templates')
         file_loader = FileSystemLoader(Path(__file__).parent / 'templates')
@@ -24,12 +26,12 @@ class Documentation:
 
     def generate(self, resource_name: Optional[str] = None) -> None:
         self.docs_path.mkdir(exist_ok=True)
-        
+
         resource_files = [self.resources_path / f"{resource_name}.yml"] if resource_name else self._get_all_resources()
-        
+
         for resource_file in resource_files:
             self._generate_resource_doc(resource_file)
-        
+
         self._generate_index()
         print("Documentation generated successfully.")
 
@@ -38,22 +40,22 @@ class Documentation:
 
     def _generate_resource_doc(self, resource_file: Path) -> None:
         data = self._load_yaml(resource_file)
-        
+
         resource_name = data.get('resource_name', 'unknown_resource')
         short_description = data.get('short_description', '')
         long_description_file = data.get('long_description', '')
-        
+
         # Load and render the long description from the markdown file
         long_description_html = self._render_long_description(resource_file.parent / long_description_file)
-        
+
         template = self.jinja_env.get_template(RESOURCE_DOC_TEMPLATE_NAME)
-        
+
         html_content = template.render(
             resource_name=resource_name,
             short_description=short_description,
             long_description_html=long_description_html
         )
-        
+
         doc_file = self.docs_path / f"{resource_name}.html"
         doc_file.write_text(html_content)
 
@@ -70,20 +72,34 @@ class Documentation:
             return ""
 
     def _generate_index(self) -> None:
-        resources = [
-            {
-                'name': data.get('resource_name', 'unknown_resource'),
-                'short_description': data.get('short_description', '')
-            }
-            for resource_file in self._get_all_resources()
-            if (data := self._load_yaml(resource_file))
-        ]
-        
+        resources = []
+        for resource_file in self._get_all_resources():
+            data = self._load_yaml(resource_file)
+            resource_name = data.get('resource_name', 'unknown_resource')
+            deployment_info = self._get_deployment_info(resource_name)
+
+            resources.append({
+                'name': resource_name,
+                'short_description': data.get('short_description', ''),
+                'is_deployed': deployment_info['is_deployed'],
+                'service_url': deployment_info['service_url']
+            })
+
         template = self.jinja_env.get_template(INDEX_TEMPLATE_NAME)
         html_content = template.render(resources=resources)
-        
+
         index_file = self.docs_path / 'index.html'
         index_file.write_text(html_content)
+
+    def _get_deployment_info(self, resource_name: str) -> Dict[str, Union[bool, str]]:
+        service_status = self.runner._check_cloud_run_services(resource_name)
+        is_deployed = service_status.get('status', '').lower() == 'ready'
+        service_url = service_status.get('url', '') if is_deployed else ''
+
+        return {
+            'is_deployed': is_deployed,
+            'service_url': service_url
+        }
 
     def serve(self, port: int = 8000) -> None:
         os.chdir(self.docs_path)

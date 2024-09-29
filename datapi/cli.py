@@ -120,7 +120,15 @@ def show():
         for resource, info in status['resources'].items():
             click.echo(f"  {resource}:")
             click.echo(f"    Container: {info['container_status']:<10}")
-            click.echo(f"    Service:   {info['service_status']:<10}")
+            
+            # Handle service_status as a dictionary
+            service_status = info['service_status']
+            if isinstance(service_status, dict):
+                click.echo(f"    Service:")
+                for key, value in service_status.items():
+                    click.echo(f"      {key}: {value}")
+            else:
+                click.echo(f"    Service:   {service_status:<10}")
 
 
 if __name__ == "__main__":

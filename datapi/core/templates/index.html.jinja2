@@ -13,6 +13,11 @@
         <li>
             <a href="{{ resource.name }}.html">{{ resource.name }}</a>
             <p>{{ resource.short_description }}</p>
+            <p><b>Deployment Status:</b> {% if resource.is_deployed %}Deployed{% else %}Not Deployed{% endif %}</p>
+            {% if resource.is_deployed and resource.service_url %}
+                <p><b>API live on:</b> {{ resource.service_url }}/get_data</p>
+                <a href="{{ resource.service_url }}/docs">API docs</a>
+            {% endif %}
         </li>
     {% endfor %}
     </ul>
