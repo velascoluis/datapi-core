@@ -15,6 +15,11 @@ SAMPLE_RESOURCE_REDUCTION_TEMPLATE_NAME = "sample-resource-reduction.yml.jinja2"
 SAMPLE_RESOURCE_REDUCTION_NAME = "sample-resource-reduction.yml"
 SAMPLE_RESOURCE_REDUCTION_DOCS_NAME = "sample-resource-reduction-docs.md"
 
+
+SAMPLE_RESOURCE_DEPENDS_DATAPOD_TEMPLATE_NAME = "sample-resource-depends-datapod.yml.jinja2"
+SAMPLE_RESOURCE_DEPENDS_DATAPOD_NAME = "sample-resource-depends-datapod.yml"
+SAMPLE_RESOURCE_DEPENDS_DATAPOD_DOCS_NAME = "sample-resource-depends-datapod-docs.md"
+
 DOCS_CSS_FILE = "styles.css"
 
 
@@ -38,7 +43,7 @@ class Initializer:
 
         self._create_config_file()
         self._create_sample_resource_file()
-        self._create_css_file()  
+        self._create_css_file()
 
         click.echo(f"Initialized new datapi project in '{self.project_name}'.")
 
@@ -88,6 +93,25 @@ class Initializer:
         )
         with open(reduction_docs_path, "w") as reduction_docs_file:
             reduction_docs_file.write(reduction_docs_content)
+
+        # Create sample depends datapod file and docs
+        depends_datapod_template = self.jinja_env.get_template(SAMPLE_RESOURCE_DEPENDS_DATAPOD_TEMPLATE_NAME)
+        depends_datapod_content = depends_datapod_template.render()
+
+        depends_datapod_path = os.path.join(
+            self.project_name, "resources", SAMPLE_RESOURCE_DEPENDS_DATAPOD_NAME
+        )
+        with open(depends_datapod_path, "w") as depends_datapod_file:
+            depends_datapod_file.write(depends_datapod_content)
+
+        depends_datapod_docs_template = self.jinja_env.get_template(SAMPLE_RESOURCE_DEPENDS_DATAPOD_DOCS_NAME)
+        depends_datapod_docs_content = depends_datapod_docs_template.render()
+
+        depends_datapod_docs_path = os.path.join(
+            self.project_name, "resources", SAMPLE_RESOURCE_DEPENDS_DATAPOD_DOCS_NAME
+        )
+        with open(depends_datapod_docs_path, "w") as depends_datapod_docs_file:
+            depends_datapod_docs_file.write(depends_datapod_docs_content)
 
     def _create_css_file(self):
         css_template = self.jinja_env.get_template(DOCS_CSS_FILE)

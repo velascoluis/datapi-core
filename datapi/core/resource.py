@@ -31,18 +31,22 @@ class ResourceConfig:
         for field, config in self.OPTIONAL_FIELDS.items():
             setattr(self, field, data.get(field))
 
-        # Special handling for depends_on
-        self.depends_on: List[Dict[str, str]] = data.get("depends_on", [])
         self.depends_on_namespace: Optional[str] = None
         self.depends_on_table: Optional[str] = None
-        self.depends_on_location: Optional[str] = None
+        self.depends_on_resource: Optional[str] = None
 
-        for item in self.depends_on:
-            if isinstance(item, dict):
-                if "namespace" in item:
-                    self.depends_on_namespace = item["namespace"]
-                if "table" in item:
-                    self.depends_on_table = item["table"]
+        if self.depends_on:
+            if isinstance(self.depends_on[0], dict):
+                depends_on_item = self.depends_on[0]
+                if "namespace" in depends_on_item and "table" in depends_on_item:
+                    self.depends_on_namespace = depends_on_item["namespace"]
+                    self.depends_on_table = depends_on_item["table"]
+                elif "resource" in depends_on_item:
+                    self.depends_on_resource = depends_on_item["resource"]
+                else:
+                    raise ValueError("Invalid 'depends_on' configuration")
+            else:
+                raise ValueError("'depends_on' should be a list of dictionaries")
 
         self._validate_config()
         self._validate_operation_type()
@@ -87,10 +91,31 @@ class ResourceConfig:
                     raise ValueError(
                         f"Each item in 'depends_on' should be a dict, got '{type(item).__name__}' at index {index}"
                     )
-                if "namespace" not in item or "table" not in item:
-                    raise KeyError(
-                        f"Each item in 'depends_on' must contain both 'namespace' and 'table' keys. Missing in item at index {index}"
-                    )
+                if ("namespace" in item and "table" in item) or "resource" in item:
+                    continue
+                raise KeyError(
+                    f"Each item in 'depends_on' must contain either both 'namespace' and 'table' keys or a 'resource' key. Invalid item at index {index}"
+                )
+
+        # Validate depends_on
+        if self.depends_on:
+            if not isinstance(self.depends_on, list):
+                raise ValueError("'depends_on' should be a list")
+            if len(self.depends_on) != 1:
+                raise ValueError("'depends_on' should contain exactly one item")
+            
+            depends_on_item = self.depends_on[0]
+            if not isinstance(depends_on_item, dict):
+                raise ValueError("Item in 'depends_on' should be a dictionary")
+            
+            if "namespace" in depends_on_item and "table" in depends_on_item:
+                if not all(isinstance(v, str) for v in depends_on_item.values()):
+                    raise ValueError("'namespace' and 'table' values should be strings")
+            elif "resource" in depends_on_item:
+                if not isinstance(depends_on_item["resource"], str):
+                    raise ValueError("'resource' value should be a string")
+            else:
+                raise ValueError("Invalid 'depends_on' configuration")
 
     def _validate_operation_type(self):
         if self.operation_type == "PROJECTION":
@@ -105,11 +130,9 @@ class ResourceConfig:
                 raise ValueError("'select' field is not allowed for REDUCTION operation")
 
     def _generate_malloy_query(self) -> tuple[str, str]:
-        if not self.depends_on_table:
-            raise ValueError("depends_on_table is required for generating Malloy query")
-
         query_parser = QueryParser(
             depends_on_table=self.depends_on_table,
+            depends_on_resource=self.depends_on_resource,
             local_engine=self.local_engine,
             operation_type=self.operation_type,
             select=self.select,

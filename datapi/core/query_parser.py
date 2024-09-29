@@ -2,8 +2,9 @@ import re
 from typing import List, Optional
 
 class QueryParser:
-    def __init__(self, depends_on_table: str, local_engine: str, operation_type: str, select: Optional[List[str]], aggregate: Optional[List[str]], group_by: Optional[List[str]], filters: Optional[str]):
+    def __init__(self, depends_on_table: Optional[str], depends_on_resource: Optional[str], local_engine: str, operation_type: str, select: Optional[List[str]], aggregate: Optional[List[str]], group_by: Optional[List[str]], filters: Optional[str]):
         self.depends_on_table = depends_on_table
+        self.depends_on_resource = depends_on_resource
         self.local_engine = local_engine
         self.operation_type = operation_type
         self.select = select
@@ -17,11 +18,15 @@ class QueryParser:
         return source, query
 
     def _generate_malloy_source(self) -> str:
-        return f"""source: {self.depends_on_table} is {self.local_engine}.table('{self.depends_on_table}')"""
+        if self.depends_on_table:
+            return f"""source: {self.depends_on_table} is {self.local_engine}.table('{self.depends_on_table}')"""
+        elif self.depends_on_resource:
+            return f"""source: resource_data is {self.local_engine}.table('resource_data')"""
+        else:
+            raise ValueError("Either depends_on_table or depends_on_resource must be provided")
 
     def _generate_malloy_run_query(self) -> str:
         query_parts: List[str] = []
-        
         if self.operation_type == "PROJECTION" and self.select:
             query_parts.append(self._generate_select_part())
         elif self.operation_type == "REDUCTION":
@@ -29,15 +34,21 @@ class QueryParser:
                 query_parts.append(self._generate_aggregate_part())
             if self.group_by:
                 query_parts.append(self._generate_group_by_part())
-        
         if self.filters:
             query_parts.append(self._generate_where_part())
 
         if not query_parts:
             return ""
 
+        if self.depends_on_table:
+            source_name = self.depends_on_table
+        elif self.depends_on_resource:
+            source_name = "resource_data"
+        else:
+            raise ValueError("Either depends_on_table or depends_on_resource must be provided")
+
         return f"""
-run: {self.depends_on_table} -> {{
+run: {source_name} -> {{
 {' '.join(query_parts)}
 }}"""
 

@@ -4,21 +4,21 @@ import click
 import glob
 import os
 import shutil
+import logging
+import traceback
 from datapi.core.resource import ResourceConfig
 from datapi.core.utils import (
     copy_datapi_package,
     check_container_images,
     check_cloud_run_services,
 )
-from datapi.core.config import Config  # Import the new Config class
+from datapi.core.config import Config
 
 from jinja2 import Environment, FileSystemLoader, ChoiceLoader, PackageLoader
 
 import dataclasses
 import importlib.util
-import sys
 import subprocess
-import traceback
 from google.cloud import run_v2
 from google.cloud.devtools import cloudbuild_v1
 from google.protobuf import duration_pb2
@@ -35,6 +35,13 @@ CONFIG_FILE = "config.yml"
 
 class Runner:
     def __init__(self, project_name=None):
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+
         self.project_path = os.getcwd()
         self.project_name = project_name or self._find_project_name()
         self.config = Config(self.project_path)  # Initialize Config
@@ -96,8 +103,8 @@ class Runner:
             except Exception as e:
                 error_message = f"{idx} of {total} FAILED endpoint for {resource_name}"
                 error_details = f"Error type: {type(e).__name__}"
-
                 error_traceback = traceback.format_exc()
+                
                 click.echo(
                     f"{error_message}\n{error_details}\n"
                     f"Error message: {str(e)}\n\n"
@@ -119,71 +126,103 @@ class Runner:
             click.echo(f"FAILED endpoint for {resource_name} [ERROR: {e}]")
 
     async def _run_resource(self, resource_file):
-        config = ResourceConfig(resource_file)
+        self.logger.debug(f"Starting to process resource file: {resource_file}")
+        try:
+            config = ResourceConfig(resource_file)
+            self.logger.debug(f"ResourceConfig created: {config}")
 
-        # Extract necessary information from the resource config
-        source = config.get_malloy_source()
-        query = config.get_malloy_query()
-        connection = config.local_engine
-        resource_name = config.resource_name
+            # Extract necessary information from the resource config
+            source = config.get_malloy_source()
+            query = config.get_malloy_query()
+            connection = config.local_engine
+            resource_name = config.resource_name
 
-        depends_on = config.depends_on[
-            0
-        ]  # TODO(velascoluis) Assuming there's only one dependency
-        namespace = depends_on["namespace"]
-        table = depends_on["table"]
+            self.logger.debug(f"Extracted info: source={source}, query={query}, connection={connection}, resource_name={resource_name}")
 
-        if not query or not connection:
-            raise ValueError(
-                f"Invalid resource configuration in {resource_file}. 'query' and 'connection' are required."
+            depends_on = config.depends_on[0] if config.depends_on else {}
+            namespace = depends_on.get("namespace")
+            table = depends_on.get("table")
+
+            if not query or not connection:
+                raise ValueError(
+                    f"Invalid resource configuration in {resource_file}. 'query' and 'connection' are required."
+                )
+
+            resource_deploy_path = os.path.join(self.deployments_path, resource_name)
+            os.makedirs(resource_deploy_path, exist_ok=True)
+
+            self._generate_fastapi_app(
+                source,
+                query,
+                resource_name,
+                resource_deploy_path,
             )
 
-        resource_deploy_path = os.path.join(self.deployments_path, resource_name)
-        os.makedirs(resource_deploy_path, exist_ok=True)
+            self._generate_dockerfile(resource_deploy_path)
 
-        self._generate_fastapi_app(
-            source,
-            query,
-            namespace,
-            table,
-            connection,
-            resource_name,
-            resource_deploy_path,
-        )
+            self._generate_requirements(resource_deploy_path)
 
-        self._generate_dockerfile(resource_deploy_path)
+            self._copy_datapi_package(resource_deploy_path)
 
-        self._generate_requirements(resource_deploy_path)
+            deployment_config = self.config.get_deployment_config()
+            registry_url = deployment_config.get("registry_url", "gcr.io/your-project-id")
+            image_name = f"{registry_url}/{resource_name}:latest"
 
-        self._copy_datapi_package(resource_deploy_path)
+            try:
+                await self._build_and_push_container(image_name, resource_deploy_path)
+                click.echo(f"Successfully built and pushed image: {image_name}")
+            except Exception as e:
+                click.echo(f"Error building and pushing container: {str(e)}")
+                return
 
-        deployment_config = self.config.get_deployment_config()
-        registry_url = deployment_config.get("registry_url", "gcr.io/your-project-id")
-        image_name = f"{registry_url}/{resource_name}:latest"
+            if config.deploy:
+                await self._deploy_container(image_name, resource_name)
 
-        try:
-            await self._build_and_push_container(image_name, resource_deploy_path)
-            click.echo(f"Successfully built and pushed image: {image_name}")
         except Exception as e:
-            click.echo(f"Error building and pushing container: {str(e)}")
-            return
-
-        if config.deploy:
-            await self._deploy_container(image_name, resource_name)
+            self.logger.exception(f"Error processing resource file {resource_file}")
+            raise
 
     def _generate_fastapi_app(
-        self, source, query, namespace, table, connection, resource_name, deploy_path
+        self, source, query, resource_name, deploy_path
     ):
         template = self.jinja_env.get_template(APP_TEMPLATE_NAME)
-        app_content = template.render(
-            polaris_uri=self.config.get("metastore_uri", ""),
-            credentials=self.config.get("metastore_credentials", ""),
-            catalog_name=self.config.get("metastore_catalog", ""),
-            namespace_name=namespace,
-            table_name=table,
-            source=source,
-            query=query,
-        )
+        
+        deployment_config = self.config.get_deployment_config()
+
+        # Get the ResourceConfig for this resource
+        resource_config = ResourceConfig(os.path.join(self.resources_path, f"{resource_name}.yml"))
+
+        if resource_config.depends_on_namespace and resource_config.depends_on_table:
+            # Case: Depends on namespace and table
+            app_content = template.render(
+                polaris_uri=self.config.get("metastore_uri", ""),
+                credentials=self.config.get("metastore_credentials", ""),
+                catalog_name=self.config.get("metastore_catalog", ""),
+                namespace_name=resource_config.depends_on_namespace,
+                table_name=resource_config.depends_on_table,
+                source=source,
+                query=query,
+                depends_on_type="table"
+            )
+        elif resource_config.depends_on_resource:
+            # Case: Depends on another resource
+            service_info = check_cloud_run_services(resource_config.depends_on_resource, deployment_config)
+            service_url = service_info['url']
+            
+            if not service_url:
+                raise ValueError(f"Could not find URL for dependent resource: {resource_config.depends_on_resource}")
+            
+            app_content = template.render(
+                polaris_uri=self.config.get("metastore_uri", ""),
+                credentials=self.config.get("metastore_credentials", ""),
+                catalog_name=self.config.get("metastore_catalog", ""),
+                depends_on_resource=service_url,
+                source=source,
+                query=query,
+                depends_on_type="resource"
+            )
+        else:
+            raise ValueError("Invalid dependency configuration")
 
         app_file_path = os.path.join(deploy_path, APP_NAME)
         with open(app_file_path, "w") as app_file:
