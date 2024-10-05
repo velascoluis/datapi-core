@@ -5,8 +5,9 @@ import click
 import subprocess
 from google.cloud import run_v2
 
-from malloy import runtime
-from malloy.data.duckdb import DuckDbConnection
+# Update these import statements
+from datapi.third_party.malloy_py.src.malloy import runtime
+from datapi.third_party.malloy_py.src.malloy.data.duckdb import DuckDbConnection
 
 
 def find_datapi_package():

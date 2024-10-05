@@ -7,7 +7,7 @@ def parse_requirements(filename):
         for line in f:
             line = line.strip()
             if line.startswith('git+'):
-                continue  # Skip git URLs for now
+                continue  
             requirements.append(line)
     return requirements
 
@@ -25,15 +25,13 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/velascoluis/datapi-core",
-    packages=find_packages(),
+    packages=find_packages(include=['datapi', 'datapi.*', 'datapi.third_party.malloy_py', 'datapi.third_party.malloy_py.*']),
     package_data={
         "datapi.core": ["templates/*.jinja2"],
+        "datapi.third_party.malloy_py": ["**/*"],
     },
     include_package_data=True,
-    install_requires=parse_requirements("requirements.txt"),
-    dependency_links=[
-        "git+https://github.com/velascoluis/malloy-py.git@main#egg=malloy"
-    ],
+    install_requires=parse_requirements("requirements.txt") + parse_requirements("datapi/third_party/malloy_py/requirements.txt"),
     entry_points="""
         [console_scripts]
         datapi=datapi.cli:cli

@@ -15,15 +15,12 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Clone and set up malloy-py
-RUN git clone https://github.com/velascoluis/malloy-py.git && \
-    cd malloy-py && \
+# Set up malloy-py
+COPY datapi/third_party/malloy-py /app/datapi/third_party/malloy-py
+RUN cd /app/datapi/third_party/malloy-py && \
     pip install -e . && \
-    git submodule update --init && \
     pip install -r requirements.dev.txt && \
-    scripts/gen-services.sh && \
-    cd .. && \
-    rm -rf malloy-py/.git
+    scripts/gen-services.sh
 
 RUN python -c "import malloy; print(malloy.__file__)"
 # Install Node.js (required for Malloy)
