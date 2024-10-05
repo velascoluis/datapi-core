@@ -1,0 +1,161 @@
+# Copyright 2023 Google LLC
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files
+# (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+# service_manager.py
+"""Module manages the service(s) needed by the Malloy runtime. """
+import asyncio
+import platform
+import re
+import sys
+
+from absl import flags
+from absl import logging
+from datetime import datetime, timedelta
+from pathlib import Path
+
+_MALLOY_DIALECTS = flags.DEFINE_list(
+    "malloy_dialects", "",
+    "List of dialects to initialize by default in ipython runtime")
+
+_TIMEOUT_SECONDS = 30
+
+
+class ServiceManager:
+  """A class that manages the connection to a Malloy compiler service. """
+  _internal_service = "localhost:14310"
+
+  @staticmethod
+  def service_path():
+    service_name = "malloy-service"
+    system = platform.system()
+    if system == "Windows":
+      service_name += "-win"
+    elif system == "Linux":
+      service_name += "-linux"
+    elif system == "Darwin":
+      service_name += "-macos"
+
+    arch = platform.machine()
+    if arch == "x86_64" or system == "Darwin" or system == "Windows":
+      service_name += "-x64"
+    elif arch in ("arm64", "aarch64"):
+      service_name += "-arm64"
+
+    if system == "Windows":
+      service_name += ".exe"
+
+    service_path = f"{Path(Path(__file__).parent, service_name).resolve()}"
+    print(f"previous service_path: {service_path}")
+    service_path = "/app/malloy-py/submodules/malloy-service/pkg/@malloydata/malloy-service-linux-x64"
+    return service_path
+
+  def __init__(self, external_service: str = None):
+    self._log = logging
+    self._is_ready = asyncio.Event()
+    self._external_service = external_service
+    self._proc = None
+
+  def is_ready(self):
+    return self._is_ready.is_set()
+
+  def shutdown(self):
+    self._kill_service()
+    self._is_ready.clear()
+
+  async def get_service(self):
+    if not self._is_ready.is_set():
+      await self._spawn_service()
+
+    if self._external_service is None:
+      return self._internal_service
+    return self._external_service
+
+  async def _spawn_service(self):
+    if self._external_service is not None:
+      self._log.debug("Using external service: %s", self._external_service)
+      self._is_ready.set()
+      return
+
+    service_path = ServiceManager.service_path()
+    self._log.debug("Starting compiler service: %s", service_path)
+
+    args = ["-p", "0"]
+    if not flags.FLAGS.is_parsed():
+      logging.debug("absl flags not yet parsed, attempting to parse sys.argv")
+      flags.FLAGS(sys.argv, True)
+
+    if _MALLOY_DIALECTS.value and len(_MALLOY_DIALECTS.value):
+      args.append("--dialect")
+      args.extend(_MALLOY_DIALECTS.value)
+
+    self._log.debug("Running with args: %s", args)
+    self._proc = await asyncio.create_subprocess_exec(
+        service_path,
+        *args,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT)
+
+    service_listening = re.compile(r"^Server listening on (\d+)$")
+    service_errored = re.compile(r"^Error:.+$")
+    errored = False
+    empty_line_count = 0
+    timeout = datetime.now() + timedelta(0, _TIMEOUT_SECONDS)
+    while datetime.now() < timeout:
+      line = await self._proc.stdout.readline()
+      if line is not None:
+        sline = line.decode().rstrip()
+        match = service_listening.match(sline)
+        if match:
+          self._log.debug("Compiler service is running: %s", sline)
+          self._internal_service = "localhost:" + match.group(1)
+          self._is_ready.set()
+          break
+
+        if service_errored.match(sline):
+          errored = True
+
+        if errored:
+          self._log.error("Message from compiler process: %s", sline)
+        else:
+          self._log.debug("Message from compiler process: %s", sline)
+
+        if sline == "":
+          empty_line_count += 1
+        else:
+          empty_line_count = 0
+
+        if empty_line_count > 1:
+          break
+
+      elif errored:
+        break
+
+    if self._is_ready.is_set() is not True and errored is False:
+      self._log.error(
+          "Timeout or something unexpected happened starting the compiler.\n" +
+          "  Compiler service NOT running: %s", sline)
+
+  def _kill_service(self):
+    if self._proc is None:
+      return
+    self._log.debug("Terminating compiler service")
+    self._proc.kill()
+    self._proc = None
